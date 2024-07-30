@@ -1,0 +1,1 @@
+<p class="footer">Entwickelt mit ❤️ für interaktives Lernen und Wissensüberprüfung</p>
