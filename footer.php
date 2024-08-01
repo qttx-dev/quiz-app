@@ -1,5 +1,5 @@
 <?php
-// Bestimmung der Logout-Seite basierend auf dem aktuellen Verzeichnis
+// Bestimmen Sie den Pfad zur Logout-Seite basierend auf dem aktuellen Verzeichnis
 $logoutPath = (basename(dirname(__FILE__)) === 'admin') ? '../logout.php' : 'logout.php';
 ?>
 

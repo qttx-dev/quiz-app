@@ -47,6 +47,8 @@ $currentSetting = $stmt->fetchColumn();
                 <input type="checkbox" id="allow_self_registration" name="allow_self_registration" value="1" <?php echo $currentSetting == '1' ? 'checked' : ''; ?>>
             </div>
             <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            <a href="db/export.php" class="btn btn-primary mt-3">Datenbank exportieren</a>
+            <a href="db/import.php" class="btn btn-primary mt-3">Datenbank importieren</a>
         </form>
 
         <a href="../index.php" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Zurück zur Startseite</a>

@@ -337,6 +337,10 @@ button:hover {
     margin-bottom: 10px; /* Abstand zum Text */
 }
 
+.user-answer {
+  text-decoration: underline;
+}
+
 @media (max-width: 576px) {
     #question_count {
         font-size: 1.2rem; /* Kleinere Schriftgröße für Mobilgeräte */

@@ -7,6 +7,13 @@ Eine interaktive Webanwendung zur Erstellung, Verwaltung und Durchführung von Q
 
 Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, zu verwalten und zu beantworten. Mit einem umfassenden Rechtemanagement und einer benutzerfreundlichen Oberfläche ist sie ideal für Bildungseinrichtungen, Unternehmen oder zum persönlichen Lernen.
 
+## 🆕 Neueste Updates
+
+- 🧠 **Adaptives Lernen**: Das Quiz lernt jetzt, welche Fragen der Benutzer häufiger falsch und welche richtig beantwortet hat. Es stellt die Fragen entsprechend häufiger oder weniger häufig.
+- 💾 **Datenbank-Management**: Administratoren können jetzt einen Datenbank-Dump exportieren und importieren.
+- 🐞 **Debugging-Tool**: Administratoren können die Datenbank debuggen. Die Inhalte werden mit DataTables angezeigt.
+- 🎨 **UI-Verbesserungen**: Einige Ansichten wurden grafisch überarbeitet, einschließlich der Loginseite.
+
 ## 🚀 Funktionen
 
 - 👥 **Benutzerverwaltung**: Unterstützt verschiedene Benutzerrollen (Admin, Manager, Editor, User)
@@ -17,6 +24,9 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 - 📤 **Import/Export**: Möglichkeit zum Import und Export von Fragen im CSV-Format
 - 📧 **E-Mail-Integration**: Unterstützung für Passwort-Zurücksetzung und Benachrichtigungen
 - 🎨 **Responsives Design**: Benutzerfreundliche Oberfläche mit Bootstrap
+- 🧠 **Adaptives Lernen**: Anpassung der Fragehäufigkeit basierend auf Benutzerleistung
+- 💾 **Datenbank-Management**: Export und Import von Datenbank-Dumps
+- 🐞 **Debugging-Tool**: Anzeige von Datenbankinhalten mit DataTables
 
 ## 📋 Voraussetzungen
 

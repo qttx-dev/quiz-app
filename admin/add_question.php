@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config.php';
+
 // Überprüfen, ob der Benutzer angemeldet und berechtigt ist
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: login.php');
@@ -146,6 +147,8 @@ try {
             });
         });
     </script>
+
+    
 
     <footer class="footer mt-5">
         <div class="container text-center">

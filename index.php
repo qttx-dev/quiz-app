@@ -25,7 +25,14 @@ $userRole = $_SESSION['user_role'];
     <div class="container mt-5 text-center">
     <i class="fas fa-user-graduate welcome-icon"></i>
     <h1 class="text-center mb-4">Willkommen zur<br>Quiz App</h1>
+    <?php if (isset($_SESSION['message'])) {
+    echo "<div class='alert alert-success mt-3 mb-3'>" . $_SESSION['message'] . "</div>";
+    unset($_SESSION['message']); // Nachricht nach dem Anzeigen löschen
+} ?>
         <a href="quiz.php" class="btn btn-primary btn-custom-welcome"><i class="fas fa-play"></i> Quiz starten</a>
+        <form action="reset.php" method="post">
+            <button type="submit" class="btn btn-warning btn-custom-welcome mt-3"><i class="fas fa-chart-bar"></i> Fragenstatistik zurücksetzen</button>
+        </form>
         <?php if ($userRole === ROLE_ADMIN || $userRole === ROLE_EDITOR): ?>
         <div class="card admin-buttons mt-4">
             <div class="card-body">
@@ -44,7 +51,9 @@ $userRole = $_SESSION['user_role'];
             </div>
         </div>
     </div>
+
     <?php include 'footer.php'; ?>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

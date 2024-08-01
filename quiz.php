@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 if (isset($_GET['restart'])) {
     unset($_SESSION['quiz_questions']);
@@ -10,42 +13,39 @@ if (isset($_GET['restart'])) {
 }
 require_once 'config.php';
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
 
-// Funktion zum Abrufen von Fragen aus ausgewählten Kategorien
-function getQuestions($db, $categoryIds, $limit) {
-    if (empty($categoryIds)) {
-        return [];
-    }
+function getQuestions($db, $category_ids, $limit) {
+    $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
 
-    $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
-    try {
-        $sql = "SELECT DISTINCT q.id, q.question_text
-                FROM questions q
-                JOIN question_categories qc ON q.id = qc.question_id
-                WHERE qc.category_id IN ($placeholders)
-                GROUP BY q.id
-                ORDER BY RAND()
-                LIMIT ?";
-        $stmt = $db->prepare($sql);
-        
-        // Bind category IDs and limit
-        foreach ($categoryIds as $index => $categoryId) {
-            $stmt->bindValue($index + 1, $categoryId, PDO::PARAM_INT);
-        }
-        $stmt->bindValue(count($categoryIds) + 1, $limit, PDO::PARAM_INT);
-        
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log("Fehler beim Abrufen der Fragen: " . $e->getMessage());
-        return [];
+    $sql = "SELECT q.id, q.question_text, COALESCE(us.correct_count, 0) as correct_count, COALESCE(us.incorrect_count, 0) as incorrect_count
+            FROM questions q
+            JOIN question_categories qc ON q.id = qc.question_id
+            LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+            WHERE qc.category_id IN ($placeholders)
+            GROUP BY q.id
+            ORDER BY (COALESCE(us.incorrect_count, 0) - COALESCE(us.correct_count, 0)) DESC, RAND()
+            LIMIT ?";
+
+    $stmt = $db->prepare($sql);
+
+    // Binden Sie die Parameter
+    $user_id = $_SESSION['user_id'];
+    $params = array_merge([$user_id], $category_ids, [$limit]);
+    
+    // Verwenden Sie bindValue für PDO
+    $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
+    foreach ($category_ids as $key => $category_id) {
+        $stmt->bindValue($key + 2, $category_id, PDO::PARAM_INT);
     }
+    $stmt->bindValue(count($params), $limit, PDO::PARAM_INT);
+
+    $stmt->execute();
+
+    $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return $questions;
 }
 
 // Funktion zum Abrufen von Antworten für eine Frage
@@ -103,12 +103,15 @@ if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) 
     }
 }
 
+// Änderung für Benutzerstatistik
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
     $selectedAnswerId = $_POST['answer'];
     $stmt = $db->prepare("SELECT is_correct FROM answers WHERE id = ?");
     $stmt->execute([$selectedAnswerId]);
-    $isCorrect = $stmt->fetchColumn();
-
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $isCorrect = $result['is_correct'];
+    
     $_SESSION['user_answers'][] = [
         'question_id' => $currentQuestion['id'],
         'answer_id' => $selectedAnswerId,
@@ -117,10 +120,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
 
     if ($isCorrect) {
         $_SESSION['correct_answers']++;
+        // Benutzerstatistik
+        $_SESSION['score']++;
+        $feedback = "Richtig!";
+    } else {
+        // richtige Antwort abrufen
+        $stmtCorrect = $db->prepare("SELECT answer_text FROM answers WHERE question_id = ? AND is_correct = 1");
+        $stmtCorrect->execute([$currentQuestion['id']]);
+        $correctAnswer = $stmtCorrect->fetchColumn();
+        $feedback = "Falsch. Die richtige Antwort ist: " . $correctAnswer;
     }
 
-    $_SESSION['current_question']++;
+    function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
+        $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count) 
+                              VALUES (?, ?, ?, ?) 
+                              ON DUPLICATE KEY UPDATE 
+                              correct_count = correct_count + ?, 
+                              incorrect_count = incorrect_count + ?");
+        
+        $correct_increment = $is_correct ? 1 : 0;
+        $incorrect_increment = $is_correct ? 0 : 1;
+        
+        $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
+    }
 
+    // Stellen Sie sicher, dass $question_id korrekt gesetzt ist
+    $question_id = $currentQuestion['id'];
+    updateUserStatistics($db, $_SESSION['user_id'], $question_id, $isCorrect);
+
+    $_SESSION['current_question']++;
+    
     // Redirect to avoid form resubmission
     header("Location: quiz.php");
     exit();
@@ -139,16 +168,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+<script>
+window.onerror = function(message, source, lineno, colno, error) {
+    console.log("Error: " + message + " at " + source + ":" + lineno + ":" + colno);
+};
+</script>
     <div class="container mt-5">
     <div class="text-center mb-4">
-    <i class="fas fa-user-graduate welcome-icon"></i> <!-- Neues Willkommen-Icon -->
+    <i class="fas fa-user-graduate welcome-icon"></i>
         <h1 class="text-center mb-4">Quiz App</h1>
     </div>
-        <?php if ($error): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
-        <?php endif; ?>
+    <?php if (isset($error) && $error): ?>
+            <div class="error"><?php echo $error; ?></div>
+    <?php endif; ?>
 
-        <?php if (!isset($_SESSION['quiz_questions'])): ?>
+    <?php if (!isset($_SESSION['quiz_questions'])): ?>
         <form method="post" action="">
             <div class="form-group">
                 <label>Wähle Kategorien</label>
@@ -173,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
             </div>
             <button type="submit" name="start_quiz" class="btn btn-primary btn-custom mb-3"><i class="fas fa-play"></i> Quiz starten</button>
         </form>
-        <?php elseif ($currentQuestion): ?>
+    <?php elseif ($currentQuestion && $answers): ?>
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title text-center">Frage <?php echo $_SESSION['current_question'] + 1; ?> von <?php echo count($_SESSION['quiz_questions']); ?></h5>
@@ -191,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
                 </form>
             </div>
         </div>
-        <?php else: ?>
+    <?php else: ?>
         <div class="alert alert-success text-center">
             <h2><i class="fas fa-trophy"></i> Quiz beendet!</h2>
             <p>Sie haben <?php echo $_SESSION['correct_answers']; ?> von <?php echo count($_SESSION['quiz_questions']); ?> Fragen richtig beantwortet.</p>
@@ -206,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
                 origin: { y: 0.6 }
             });
         </script>
-        <?php endif; ?>
+    <?php endif; ?>
     </div>
     <?php include 'footer.php'; ?>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

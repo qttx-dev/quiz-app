@@ -104,22 +104,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE user_statistics (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                question_id INT,
+                correct_count INT DEFAULT 0,
+                incorrect_count INT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
+
             INSERT INTO settings (name, value) VALUES ('allow_self_registration', '1');
             ";
 
             $db->exec($sql);
 
-            // Admin-Benutzer erstellen
-            $username = $_POST['admin_username'];
-            $email = $_POST['admin_email'];
-            $password = password_hash($_POST['admin_password'], PASSWORD_BCRYPT);
+// Admin-Benutzer erstellen
+$username = $_POST['admin_username'];
+$email = $_POST['admin_email'];
+$password = password_hash($_POST['admin_password'], PASSWORD_BCRYPT);
 
-            // Fügen Sie die Rolle ROLE_ADMIN hinzu
-            $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'admin')");
-            $stmt->execute([$username, $email, $password]);
+// Fügen Sie die Rolle ROLE_ADMIN hinzu
+$stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'admin')");
+$stmt->execute([$username, $email, $password]);
 
-            // Erstellen der config.php
-            $config_content = "<?php
+// Erstellen der config.php
+$config_content = "<?php
 define('DB_HOST', '{$_SESSION['db_config']['host']}');
 define('DB_NAME', '{$_SESSION['db_config']['name']}');
 define('DB_USER', '{$_SESSION['db_config']['user']}');
