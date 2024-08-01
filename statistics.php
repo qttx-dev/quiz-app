@@ -117,6 +117,13 @@ if ($userStats) {
                 Keine Statistiken verfügbar. Versuchen Sie, ein Quiz zu spielen!
             </div>
         <?php endif; ?>
+        <div class="row justify-content-center mt-5 mb-5">
+        <div class="col-md-6 text-center">
+            <a href="index.php" class="btn btn-primary btn-lg btn-block">
+                <i class="fas fa-home mr-2"></i> Zurück zur Startseite
+            </a>
+        </div>
+    </div>
     </div>
 </body>
 </html>
