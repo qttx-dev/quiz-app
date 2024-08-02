@@ -21,15 +21,18 @@ try {
 
     echo "<div class='container mt-5'>";
     echo "<h1 class='text-center mb-4'>Datenbank-Debug</h1>";
-
+    echo "<h2 class='mt-10'>Tabellenübersicht</h2>";
     echo "<div class='list-group mb-4'>";
     foreach ($tables as $table) {
         echo "<a href='#$table' class='list-group-item list-group-item-action'>$table</a>";
     }
     echo "</div>";
 
+    echo "<a href='../settings.php' class='btn btn-secondary btn-block mt-4'><i class='fas fa-arrow-left'></i> Zurück zu den Einstellungen</a>"; 
+    echo "<a href='../../index.php' class='btn btn-secondary btn-block mt-2'><i class='fas fa-arrow-left'></i> Zurück zur Startseite</a>"; 
+
     foreach ($tables as $table) {
-        echo "<h2 id='$table' class='mt-4'>$table</h2>";
+        echo "<h2 id='$table' class='mt-4'>Tabelle <b>$table</b></h2>";
         $stmt = $db->query("SELECT * FROM $table");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -87,6 +90,11 @@ echo "<div class='alert alert-success'>Admin-Rolle wurde aktualisiert.</div>";
         h1, h2 {
             color: #343a40;
         }
+
+        h2 {
+            font-size: 1.5em;
+        }
+
         table {
             margin-bottom: 2rem;
         }

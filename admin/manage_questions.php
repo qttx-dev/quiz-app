@@ -113,10 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                         <td><?php echo htmlspecialchars($question['correct_answer']); ?></td>
                         <td><?php echo htmlspecialchars($question['categories']); ?></td>
                         <td>
-                            <a href="edit_question.php?id=<?php echo $question['id']; ?>" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> Bearbeiten</a>
+                            <a href="edit_question.php?id=<?php echo $question['id']; ?>" class="btn btn-primary btn-sm btn-action"><i class="fas fa-edit"></i> Bearbeiten</a>
                             <form action="" method="post" class="d-inline" onsubmit="return confirm('Sind Sie sicher, dass Sie diese Frage löschen möchten?');">
                                 <input type="hidden" name="question_id" value="<?php echo $question['id']; ?>">
-                                <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Löschen</button>
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm btn-action"><i class="fas fa-trash"></i> Löschen</button>
                             </form>
                         </td>
                     </tr>

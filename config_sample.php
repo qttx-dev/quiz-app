@@ -1,4 +1,6 @@
 <?php
+// https://www.perplexity.ai/search/wir-haben-jetzt-zwischenzeitli-YIhIYH2yQKmi8B_wWrd27A
+// https://www.perplexity.ai/search/ich-brauche-eine-kleine-quizap-ivCKzKC4TEOvRGJOpi3OUw
 
 // Datenbank-Konfiguration
 define('DB_HOST', 'localhost');

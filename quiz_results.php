@@ -1,25 +1,26 @@
 <?php
 session_start();
 require_once 'config.php';
-// Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
-
-// if (!isset($_SESSION['quiz_finished']) || !$_SESSION['quiz_finished']) {
-//     header("Location: quiz.php");
-//     exit();
-// }
 
 $totalQuestions = count($_SESSION['quiz_questions']);
 $correctAnswers = $_SESSION['correct_answers'];
+$incorrectAnswers = $totalQuestions - $correctAnswers;
 $percentage = ($correctAnswers / $totalQuestions) * 100;
 
-$showSummary = isset($_GET['show_summary']) && $_GET['show_summary'] == 1;
+// Animation
+$confetti = "<script>
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    </script>";
 
-// Funktion zum Abrufen der Details einer Frage
 function getQuestionDetails($db, $questionId) {
     try {
         $stmt = $db->prepare("
-            SELECT q.question_text, a.answer_text, a.is_correct, q.explanation
+            SELECT q.question_text, a.id as answer_id, a.answer_text, a.is_correct, q.explanation
             FROM questions q
             JOIN answers a ON q.id = a.question_id
             WHERE q.id = ?
@@ -31,7 +32,6 @@ function getQuestionDetails($db, $questionId) {
         return [];
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -42,80 +42,131 @@ function getQuestionDetails($db, $questionId) {
     <title>Quiz Ergebnisse - Quiz App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .quiz-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .result-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .result-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .result-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .result-text {
+            font-size: 1.2rem;
+        }
+        .progress {
+            height: 1.5rem;
+            font-size: 1rem;
+        }
+        .question-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .correct-answer {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .incorrect-answer {
+            color: #dc3545;
+        }
+        .user-answer {
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <div class="text-center mb-4">
-            <i class="fas fa-trophy quiz-icon"></i>
-            <h1 class="mb-4">Quiz Ergebnisse</h1>
-        </div>
-        
-        <div class="card">
-            <div class="card-body text-center">
-                <?php if ($showSummary): ?>
-                    <h2>Quiz beendet!</h2>
-                    <p class="lead">Sie haben <?php echo $correctAnswers; ?> von <?php echo $totalQuestions; ?> Fragen richtig beantwortet.</p>
-                    <h3><?php echo number_format($percentage, 2); ?> %</h3>
-                    <a href="quiz_results.php" class="btn btn-primary btn-custom mt-3">Details anzeigen</a>
-                <?php else: ?>
-                    <h2>Detaillierte Ergebnisse</h2>
-                    <?php foreach ($_SESSION['quiz_questions'] as $index => $question): ?>
-                        <div class="card mt-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Frage <?php echo $index + 1; ?></h5>
-                                <p class="card-text"><?php echo htmlspecialchars($question['question_text']); ?></p>
-                                <?php 
-                                $details = getQuestionDetails($db, $question['id']);
-                                foreach ($details as $answer):
-                                    $class = $answer['is_correct'] ? 'correct-answer' : 'incorrect-answer';
-                                ?>
-                                    <p class="<?php echo $class; ?>"><?php echo htmlspecialchars($answer['answer_text']); ?></p>
-                                <?php endforeach; ?>
-                                <?php if (!empty($details[0]['explanation'])): ?>
-                                    <p><strong>Erklärung</strong><br> <?php echo htmlspecialchars($details[0]['explanation']); ?></p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+    <div class="container mt-4 mb-4">
+        <div class="quiz-container">
+            <h1 class="text-center mb-4">Quiz Ergebnisse</h1>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="result-card text-center">
+                        <i class="fas fa-check-circle result-icon text-success"></i>
+                        <div class="result-number text-success"><?php echo $correctAnswers; ?></div>
+                        <div class="result-text">Richtig</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="result-card text-center">
+                        <i class="fas fa-times-circle result-icon text-danger"></i>
+                        <div class="result-number text-danger"><?php echo $incorrectAnswers; ?></div>
+                        <div class="result-text">Falsch</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="result-card text-center">
+                        <i class="fas fa-percentage result-icon text-primary"></i>
+                        <div class="result-number text-primary"><?php echo number_format($percentage, 1); ?>%</div>
+                        <div class="result-text">Gesamt</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress mt-4 mb-4">
+                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $percentage; ?>%" aria-valuenow="<?php echo $percentage; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo number_format($percentage, 1); ?>%</div>
+            </div>
+
+            <h2 class="text-center mb-4">Detaillierte Ergebnisse</h2>
+            <?php foreach ($_SESSION['quiz_questions'] as $index => $question): ?>
+                <div class="question-card">
+                    <h5>Frage <?php echo $index + 1; ?></h5>
+                    <p><?php echo htmlspecialchars($question['question_text']); ?></p>
+                    <?php 
+                    $details = getQuestionDetails($db, $question['id']);
+                    foreach ($details as $answer):
+                        $class = $answer['is_correct'] ? 'correct-answer' : 'incorrect-answer';
+                        $userAnswer = $_SESSION['user_answers'][$index];
+                        if ($userAnswer['answer_id'] == $answer['answer_id']) {
+                            $class .= ' user-answer';
+                        }
+                    ?>
+                        <p class="<?php echo $class; ?>"><?php echo htmlspecialchars($answer['answer_text']); ?></p>
+                    <?php endforeach;
+                    if (!empty($details[0]['explanation'])): ?>
+                        <p class="mt-2"><strong>Erklärung:</strong> <?php echo htmlspecialchars($details[0]['explanation']); ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            
+            <div class="text-center mt-4">
+                <a href="quiz.php" class="btn btn-primary">zurück</a>
+                <a href="index.php" class="btn btn-secondary">zur Startseite</a>
             </div>
         </div>
-        
-        <div class="text-center mt-4 mb-4">
-            <a href="index.php" class="btn btn-secondary btn-custom">Zurück zur Startseite</a>
-        </div>
     </div>
-
-    <canvas id="confetti-canvas"></canvas>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script>
-        <?php if ($showSummary): ?>
-        // Konfetti-Effekt
-        var duration = 15 * 1000;
-        var animationEnd = Date.now() + duration;
-        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-        function randomInRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-
-        var interval = setInterval(function() {
-            var timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
-
-            var particleCount = 50 * (timeLeft / duration);
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-        }, 250);
-        <?php endif; ?>
-    </script>
+    <?php
+    if($percentage > 50) {
+        echo $confetti;
+    }
+    ?>
 </body>
 </html>

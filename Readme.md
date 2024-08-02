@@ -10,7 +10,10 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 ## 🆕 Neueste Updates
 
 - 🧠 **Adaptives Lernen**: Das Quiz lernt jetzt, welche Fragen der Benutzer häufiger falsch und welche richtig beantwortet hat. Es stellt die Fragen entsprechend häufiger oder weniger häufig.
+- ✅ **Direktes Feedback**: Nach jeder Frage erhalten Benutzer sofort Feedback, ob ihre Antwort richtig war.
+- 📊 **Verbesserte Auswertung**: In der Auswertung nach dem Quiz ist nun nicht nur die richtige Antwort erkennbar, sondern auch die selbst gewählte Antwort.
 - 💾 **Datenbank-Management**: Administratoren können jetzt einen Datenbank-Dump exportieren und importieren.
+- 📈 **Prozentuale Anzeige**: Benutzer sehen auf einen Blick, wie viel Prozent sie in der Fragerunde erreicht haben.
 - 🐞 **Debugging-Tool**: Administratoren können die Datenbank debuggen. Die Inhalte werden mit DataTables angezeigt.
 - 🎨 **UI-Verbesserungen**: Einige Ansichten wurden grafisch überarbeitet, einschließlich der Loginseite.
 
@@ -20,7 +23,7 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 - 📝 **Fragenverwaltung**: Erstellen, Bearbeiten und Löschen von Quizfragen
 - 🗂️ **Kategorisierung**: Organisieren von Fragen in verschiedene Kategorien
 - 📊 **Quiz-Durchführung**: Zufällige Auswahl von Fragen aus gewählten Kategorien
-- 📈 **Ergebnisauswertung**: Detaillierte Auswertung der Quiz-Ergebnisse
+- 📈 **Ergebnisauswertung**: Detaillierte Auswertung der Quiz-Ergebnisse.
 - 📤 **Import/Export**: Möglichkeit zum Import und Export von Fragen im CSV-Format
 - 📧 **E-Mail-Integration**: Unterstützung für Passwort-Zurücksetzung und Benachrichtigungen
 - 🎨 **Responsives Design**: Benutzerfreundliche Oberfläche mit Bootstrap
@@ -61,6 +64,25 @@ Nach Abschluss des Setups wird eine `config.php` erstellt. Die `setup.php` sollt
    - 👥 Benutzer verwalten
    - 🧠 Quiz durchführen
    - 📊 Ergebnisse anzeigen
+
+## 🖼️ Screenshots
+
+Hier sind einige Screenshots der Anwendung:
+
+### Beispiel einer Quizfrage mit direktem Feedback
+![Beispiel einer Quizfrage mit direktem Feedback](screenshots/question-feedback.png)
+
+### Beispiel einer Auswertung einer Fragerunde
+![Beispiel einer Auswertung einer Fragerunde](screenshots/question-result.png)
+
+### Beispiel einer User-Statistik
+![Beispiel einer User-Statistik](screenshots/quizstatistik.png)
+
+### Einfache Eingabe einer Frage
+![Einfache Eingabe einer Frage](screenshots/add-question.png)
+
+### Hauptmenü
+![Hauptmenü](screenshots/hauptmenu.png)
 
 ## 🛠️ Anpassung
 

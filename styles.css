@@ -278,6 +278,10 @@ button:hover {
     border-radius: 10px;
 }
 
+.btn-action {
+  width: 100%;
+}
+
 .card {
     margin-bottom: 20px;
     border-radius: 15px;

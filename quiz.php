@@ -1,21 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 session_start();
-if (isset($_GET['restart'])) {
-    unset($_SESSION['quiz_questions']);
-    unset($_SESSION['current_question']);
-    unset($_SESSION['correct_answers']);
-    unset($_SESSION['user_answers']);
-    header("Location: quiz.php");
-    exit();
-}
 require_once 'config.php';
 
 // Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
 
+// Funktion zum Abrufen von Fragen
 function getQuestions($db, $category_ids, $limit) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
 
@@ -53,7 +43,20 @@ function getAnswers($db, $questionId) {
     try {
         $stmt = $db->prepare("SELECT id, answer_text, is_correct FROM answers WHERE question_id = ? ORDER BY RAND()");
         $stmt->execute([$questionId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $answers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Mischen Sie die Antworten nur, wenn sie noch nicht in der Session gespeichert sind
+        if (!isset($_SESSION['shuffled_answers'][$questionId])) {
+            shuffle($answers);
+            $_SESSION['shuffled_answers'][$questionId] = $answers;
+        } else {
+            $answers = $_SESSION['shuffled_answers'][$questionId];
+        }
+        
+        // Mischen der Antworten
+        // shuffle($answers);
+        return $answers;
+
     } catch (PDOException $e) {
         error_log("Fehler beim Abrufen der Antworten: " . $e->getMessage());
         return [];
@@ -71,13 +74,25 @@ function getCategories($db) {
     }
 }
 
+// Funktion zum Aktualisieren der Benutzerstatistik
+function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
+    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count) 
+                          VALUES (?, ?, ?, ?) 
+                          ON DUPLICATE KEY UPDATE 
+                          correct_count = correct_count + ?, 
+                          incorrect_count = incorrect_count + ?");
+    $correct_increment = $is_correct ? 1 : 0;
+    $incorrect_increment = $is_correct ? 0 : 1;
+    $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
+}
+
 $categories = getCategories($db);
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
     $selectedCategories = isset($_POST['categories']) ? $_POST['categories'] : [];
     $questionCount = isset($_POST['question_count']) ? intval($_POST['question_count']) : 10;
-    
+
     if (empty($selectedCategories)) {
         $error = "Bitte wählen Sie mindestens eine Kategorie aus.";
     } else {
@@ -89,12 +104,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
             $_SESSION['current_question'] = 0;
             $_SESSION['correct_answers'] = 0;
             $_SESSION['user_answers'] = [];
+            $_SESSION['shuffled_answers'] = [];
         }
     }
 }
 
 $currentQuestion = null;
 $answers = null;
+
+// if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
+//     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {
+//         $currentQuestion = $_SESSION['quiz_questions'][$_SESSION['current_question']];
+
+//         if (!isset($_SESSION['shuffled_answers'][$currentQuestion['id']])) {
+//             $answers = getAnswers($db, $currentQuestion['id']);
+//             $_SESSION['shuffled_answers'][$currentQuestion['id']] = $answers;
+
+//         else {
+//             $answers = $_SESSION['shuffled_answers'][$currentQuestion['id']];
+//         }
+
+//     }
+// }
+
+// if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
+//     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {
+//         $currentQuestion = $_SESSION['quiz_questions'][$_SESSION['current_question']];
+//         if (!isset($_SESSION['shuffled_answers'][$currentQuestion['id']])) {
+//             $answers = getAnswers($db, $currentQuestion['id']);
+//             $_SESSION['shuffled_answers'][$currentQuestion['id']] = $answers;
+//         } else {
+//             $answers = $_SESSION['shuffled_answers'][$currentQuestion['id']];
+//         }
+//     }
+// }
 
 if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {
@@ -103,7 +146,6 @@ if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) 
     }
 }
 
-// Änderung für Benutzerstatistik
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
     $selectedAnswerId = $_POST['answer'];
@@ -111,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
     $stmt->execute([$selectedAnswerId]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $isCorrect = $result['is_correct'];
-    
+
     $_SESSION['user_answers'][] = [
         'question_id' => $currentQuestion['id'],
         'answer_id' => $selectedAnswerId,
@@ -120,37 +162,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
 
     if ($isCorrect) {
         $_SESSION['correct_answers']++;
-        // Benutzerstatistik
-        $_SESSION['score']++;
-        $feedback = "Richtig!";
-    } else {
-        // richtige Antwort abrufen
-        $stmtCorrect = $db->prepare("SELECT answer_text FROM answers WHERE question_id = ? AND is_correct = 1");
-        $stmtCorrect->execute([$currentQuestion['id']]);
-        $correctAnswer = $stmtCorrect->fetchColumn();
-        $feedback = "Falsch. Die richtige Antwort ist: " . $correctAnswer;
     }
 
-    function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
-        $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count) 
-                              VALUES (?, ?, ?, ?) 
-                              ON DUPLICATE KEY UPDATE 
-                              correct_count = correct_count + ?, 
-                              incorrect_count = incorrect_count + ?");
-        
-        $correct_increment = $is_correct ? 1 : 0;
-        $incorrect_increment = $is_correct ? 0 : 1;
-        
-        $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
-    }
+    // Richtige Antwort abrufen
+    $stmtCorrect = $db->prepare("SELECT id FROM answers WHERE question_id = ? AND is_correct = 1");
+    $stmtCorrect->execute([$currentQuestion['id']]);
+    $correctAnswerId = $stmtCorrect->fetchColumn();
 
-    // Stellen Sie sicher, dass $question_id korrekt gesetzt ist
-    $question_id = $currentQuestion['id'];
-    updateUserStatistics($db, $_SESSION['user_id'], $question_id, $isCorrect);
+    $_SESSION['show_result'] = true;
+    $_SESSION['selected_answer_id'] = $selectedAnswerId;
+    $_SESSION['correct_answer_id'] = $correctAnswerId;
 
+    updateUserStatistics($db, $_SESSION['user_id'], $currentQuestion['id'], $isCorrect);
+
+    // Kein automatisches Weiterleiten zur nächsten Frage
+    header("Location: quiz.php");
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next_question'])) {
     $_SESSION['current_question']++;
-    
-    // Redirect to avoid form resubmission
+    $_SESSION['show_result'] = false;
+    header("Location: quiz.php");
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
+    unset($_SESSION['quiz_questions']);
+    unset($_SESSION['current_question']);
+    unset($_SESSION['correct_answers']);
+    unset($_SESSION['user_answers']);
+    unset($_SESSION['show_result']);
+    unset($_SESSION['confetti']);
     header("Location: quiz.php");
     exit();
 }
@@ -161,91 +204,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz - Quiz App</title>
+    <title>Quiz App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .quiz-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .btn-answer {
+            font-size: 1.1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: left;
+            white-space: normal;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .btn-answer:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn-answer.correct {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .btn-answer.incorrect {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        .question-number {
+            font-size: 1.2rem;
+            color: #007bff;
+            margin-bottom: 1rem;
+        }
+        .category-badge {
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+            background-color: #17a2b8;
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+        }
+        .custom-control-label {
+            padding-left: 0.5rem;
+        }
+
+        .question {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        @media (max-width: 576px) {
+            .quiz-container {
+                padding: 1rem;
+            }
+            .btn-answer {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<script>
-window.onerror = function(message, source, lineno, colno, error) {
-    console.log("Error: " + message + " at " + source + ":" + lineno + ":" + colno);
-};
-</script>
-    <div class="container mt-5">
-    <div class="text-center mb-4">
-    <i class="fas fa-user-graduate welcome-icon"></i>
-        <h1 class="text-center mb-4">Quiz App</h1>
-    </div>
-    <?php if (isset($error) && $error): ?>
-            <div class="error"><?php echo $error; ?></div>
-    <?php endif; ?>
-
-    <?php if (!isset($_SESSION['quiz_questions'])): ?>
-        <form method="post" action="">
-            <div class="form-group">
-                <label>Wähle Kategorien</label>
-                <div class="row">
-                    <?php foreach ($categories as $category): ?>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" name="categories[]" value="<?php echo $category['id']; ?>" id="category<?php echo $category['id']; ?>">
-                                <label class="form-check-label" for="category<?php echo $category['id']; ?>">
-                                    <?php echo htmlspecialchars($category['name']); ?>
-                                </label>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+    <div class="container mt-4 mb-4">
+        <div class="quiz-container">
+            <?php if ($error): ?>
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i> <?php echo $error; ?>
                 </div>
-            </div>
-            <div class="form-group">
-                <div class="text-center mb-4">
-                    <label for="question_count" class="form-label">Anzahl der Fragen</label>
-                    <input type="number" class="form-control form-control-lg mx-auto text-center" id="question_count" name="question_count" required>
-                </div>
-            </div>
-            <button type="submit" name="start_quiz" class="btn btn-primary btn-custom mb-3"><i class="fas fa-play"></i> Quiz starten</button>
-        </form>
-    <?php elseif ($currentQuestion && $answers): ?>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title text-center">Frage <?php echo $_SESSION['current_question'] + 1; ?> von <?php echo count($_SESSION['quiz_questions']); ?></h5>
-                <p class="card-text"><?php echo htmlspecialchars($currentQuestion['question_text']); ?></p>
+            <?php elseif (!isset($_SESSION['quiz_questions'])): ?>
+                <h2 class="text-center mb-4"><i class="fas fa-question-circle"></i> Quiz starten</h2>
                 <form method="post" action="">
-                    <?php foreach ($answers as $answer): ?>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="answer" value="<?php echo $answer['id']; ?>" id="answer<?php echo $answer['id']; ?>" required>
-                            <label class="form-check-label" for="answer<?php echo $answer['id']; ?>">
-                                <?php echo htmlspecialchars($answer['answer_text']); ?>
-                            </label>
+                    <div class="form-group">
+                        <label for="question_count"><i class="fas fa-list-ol"></i> Anzahl der Fragen:</label>
+                        <input type="number" class="form-control form-control-lg" id="question_count" name="question_count" min="1" max="50" value="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tags"></i> Kategorien auswählen:</label>
+                        <div class="row">
+                            <?php foreach ($categories as $category): ?>
+                                <div class="col-md-6">
+                                    <div class="custom-control custom-checkbox mb-2">
+                                        <input type="checkbox" class="custom-control-input" name="categories[]" value="<?php echo $category['id']; ?>" id="category<?php echo $category['id']; ?>">
+                                        <label class="custom-control-label" for="category<?php echo $category['id']; ?>">
+                                            <?php echo htmlspecialchars($category['name']); ?>
+                                        </label>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                    <?php endforeach; ?>
-                    <button type="submit" name="submit_answer" class="btn btn-primary mt-3 w-100"><i class="fas fa-check"></i> Antwort bestätigen</button>
+                    </div>
+                    <button type="submit" name="start_quiz" class="btn btn-primary btn-lg btn-block">
+                        <i class="fas fa-play"></i> Quiz starten
+                    </button>
                 </form>
-            </div>
+            <?php elseif ($currentQuestion): ?>
+                <div class="question-number text-center">
+                    <i class="fas fa-question-circle"></i> Frage <?php echo $_SESSION['current_question'] + 1; ?> von <?php echo count($_SESSION['quiz_questions']); ?>
+                </div>
+                <h3 class="mb-4 question"><?php echo htmlspecialchars($currentQuestion['question_text']); ?></h3>
+                <?php if (isset($_SESSION['show_result']) && $_SESSION['show_result']): ?>
+                    <?php foreach ($answers as $answer): ?>
+                        <button class="btn btn-answer btn-block <?php 
+                            if ($answer['id'] == $_SESSION['correct_answer_id']) echo 'correct';
+                            elseif ($answer['id'] == $_SESSION['selected_answer_id'] && $answer['id'] != $_SESSION['correct_answer_id']) echo 'incorrect';
+                        ?>" disabled>
+                            <?php echo htmlspecialchars($answer['answer_text']); ?>
+                        </button>
+                    <?php endforeach; ?>
+                    <form method="post" action="">
+                        <button type="submit" name="next_question" class="btn btn-primary btn-lg btn-block mt-3">
+                            <i class="fas fa-arrow-right"></i> Nächste Frage
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <form method="post" action="">
+                        <?php foreach ($answers as $answer): ?>
+                            <button type="submit" name="answer" value="<?php echo $answer['id']; ?>" class="btn btn-answer btn-block">
+                                <?php echo htmlspecialchars($answer['answer_text']); ?>
+                            </button>
+                        <?php endforeach; ?>
+                        <input type="hidden" name="submit_answer" value="1">
+                    </form>
+                <?php endif; ?>
+            <?php else: ?>
+                <?php
+                $_SESSION['confetti'] = 1;
+                $totalQuestions = count($_SESSION['quiz_questions']);
+                $correctAnswers = $_SESSION['correct_answers'];
+                $incorrectAnswers = $totalQuestions - $correctAnswers;
+                $percentage = ($correctAnswers / $totalQuestions) * 100;
+                if($percentage > 50)
+                {
+                    $score = 1;
+                }
+                else
+                {
+                    $score = 0;
+                }
+                ?>
+                <h2 class="text-center mb-4"><i class="fas fa-clipboard-check"></i> Quiz beendet</h2>
+                <p class="lead text-center">
+                    Sie haben <?php echo $_SESSION['correct_answers']; ?> von <?php echo count($_SESSION['quiz_questions']); ?> Fragen richtig beantwortet.
+                </p>
+                <div class="text-center mt-4">
+                    <a href="quiz_results.php" class="btn btn-info btn-lg btn-block mb-2">
+                        <i class="fas fa-chart-bar"></i> Detaillierte Ergebnisse anzeigen
+                    </a>
+                    <form method="post" action="">
+                        <button type="submit" name="restart_quiz" class="btn btn-primary btn-lg btn-block mb-2">
+                            <i class="fas fa-redo"></i> Quiz neu starten
+                        </button>
+                    </form>
+                    <a href="index.php" class="btn btn-secondary btn-lg btn-block">
+                        <i class="fas fa-home"></i> Zurück zur Startseite
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
-    <?php else: ?>
-        <div class="alert alert-success text-center">
-            <h2><i class="fas fa-trophy"></i> Quiz beendet!</h2>
-            <p>Sie haben <?php echo $_SESSION['correct_answers']; ?> von <?php echo count($_SESSION['quiz_questions']); ?> Fragen richtig beantwortet.</p>
-            <a href="quiz_results.php" class="btn btn-primary btn-custom mb-3"><i class="fas fa-chart-bar"></i> Detaillierte Ergebnisse</a>
-            <a href="quiz.php?restart=1" class="btn btn-secondary btn-custom mb-3"><i class="fas fa-redo"></i> Quiz neu starten</a>
-            <a href="index.php" class="btn btn-secondary btn-custom mb-3"><i class="fas fa-home"></i> Zurück zur Startseite</a>
-        </div>
-        <script>
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-        </script>
-    <?php endif; ?>
     </div>
-    <?php include 'footer.php'; ?>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        <?php if (isset($_SESSION['confetti']) && $score == 1): ?>
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        <?php endif; ?>
+    });
+    </script>
 </body>
 </html>
