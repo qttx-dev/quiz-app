@@ -76,7 +76,7 @@ Hier sind einige Screenshots der Anwendung:
 ![Beispiel einer Auswertung einer Fragerunde](screenshots/question-result.png)
 
 ### Beispiel einer User-Statistik
-![Beispiel einer User-Statistik](screenshots/quizstatistik.png)
+![Beispiel einer User-Statistik](screenshots/quizstatistic.png)
 
 ### Einfache Eingabe einer Frage
 ![Einfache Eingabe einer Frage](screenshots/add-question.png)
