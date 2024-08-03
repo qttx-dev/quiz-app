@@ -1,0 +1,352 @@
+/* Grundlegende Reset-Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* fira-sans-100 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 100;
+    src: url('fonts/fira-sans-v17-latin-100.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-100italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 100;
+    src: url('fonts/fira-sans-v17-latin-100italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-200 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 200;
+    src: url('fonts/fira-sans-v17-latin-200.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-200italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 200;
+    src: url('fonts/fira-sans-v17-latin-200italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-300 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 300;
+    src: url('fonts/fira-sans-v17-latin-300.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-300italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 300;
+    src: url('fonts/fira-sans-v17-latin-300italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-regular - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 400;
+    src: url('fonts/fira-sans-v17-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 400;
+    src: url('fonts/fira-sans-v17-latin-italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-500 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 500;
+    src: url('fonts/fira-sans-v17-latin-500.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-500italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 500;
+    src: url('fonts/fira-sans-v17-latin-500italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-600 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 600;
+    src: url('fonts/fira-sans-v17-latin-600.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-600italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 600;
+    src: url('fonts/fira-sans-v17-latin-600italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-700 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 700;
+    src: url('fonts/fira-sans-v17-latin-700.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-700italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 700;
+    src: url('fonts/fira-sans-v17-latin-700italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-800 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 800;
+    src: url('fonts/fira-sans-v17-latin-800.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-800italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 800;
+    src: url('fonts/fira-sans-v17-latin-800italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-900 - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: normal;
+    font-weight: 900;
+    src: url('fonts/fira-sans-v17-latin-900.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+  /* fira-sans-900italic - latin */
+  @font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Fira Sans';
+    font-style: italic;
+    font-weight: 900;
+    src: url('fonts/fira-sans-v17-latin-900italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  }
+  
+body {
+    font-family: 'Fira Sans', sans-serif;
+    /* background-color: #f8f9fa;
+    color: #343a40;
+    line-height: 1.6; */
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    /* max-width: 500px; */
+    margin-top: 50px!important;
+}
+
+h1 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #007bff;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label,
+.form-check-input {
+    font-weight: 300;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: 800;
+    font-size: larger!important;
+    font-style: normal;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.alert {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/** Custom */
+#question_count {
+    width: 50%!important;
+    max-width: 100px; /* Maximale Breite des Eingabefelds */
+    font-size: 1.5rem; /* Größere Schriftgröße */
+    padding: 10px; /* Innenabstand */
+    border-radius: 10px; /* Abgerundete Ecken */
+    border: 2px solid #ced4da; /* Rahmenfarbe */
+}
+
+.welcome-icon {
+    font-size: 64px; /* Größeres Icon */
+    color: #007bff; /* Einladende Farbe */
+    margin-bottom: 20px;
+}
+.btn-custom {
+    width: 100%;
+    padding: 10px; /* Höhere Schaltfläche */
+    font-size: 14px; /* Größere Schrift */
+    border-radius: 10px;
+}
+.admin-buttons .btn {
+    margin-bottom: 10px;
+}
+
+.btn-custom-welcome {
+    width: 100%;
+    padding: 20px; /* Höhere Schaltfläche */
+    font-size: 24px; /* Größere Schrift */
+    border-radius: 10px;
+}
+
+.btn-action {
+  width: 100%;
+}
+
+.card {
+    margin-bottom: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.btn-custom {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    border-radius: 10px;
+}
+.quiz-icon {
+    font-size: 48px;
+    color: #28a745;
+    margin-bottom: 20px;
+}
+#confetti-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+.correct-answer {
+    color: #28a745;
+    font-weight: 800;
+}
+.incorrect-answer {
+    color: #dc3545;
+    text-decoration: line-through;
+}
+
+.username {
+    font-weight: 300;
+}
+
+.footer-login {
+    margin-top: 2em;
+    padding-top: 1em;
+    text-align: center;
+}
+
+.footer {
+    margin-top: 2em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    border-top: 1px solid #e5e5e5;
+    font-weight: 300;
+    font-size: small;
+}
+
+.footer .btn-outline-secondary {
+    font-size: 0.8rem; /* Kleinere Schriftgröße */
+    padding: 0.2rem 0.5rem; /* Wenig Padding für den Button */
+    margin-bottom: 10px; /* Abstand zum Text */
+}
+
+.user-answer {
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+    #question_count {
+        font-size: 1.2rem; /* Kleinere Schriftgröße für Mobilgeräte */
+    }
+}

@@ -42,8 +42,11 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 
 1. Klonen Sie dieses Repository oder laden Sie die Dateien herunter.
 2. Führen Sie `composer install` aus, um die erforderlichen Abhängigkeiten zu installieren.
-3. Navigieren Sie im Browser zur `setup.php`, um die Ersteinrichtung durchzuführen.
-4. Folgen Sie den Anweisungen zur Konfiguration der Datenbank und des E-Mail-Servers.
+3. Installieren Sie PHPMailer mit `composer require phpmailer/phpmailer`
+4. Setzen Sie die Rechte für die `setup.php` mit `chmod 666 setup.php` und das Verzeichnis mit `chmod 755`.
+5. Das Verzeichnis muss beschreibbar sein und Sie müssen Besitzer des Verzeichnisses sein.
+6. Navigieren Sie im Browser zur `setup.php`, um die Ersteinrichtung durchzuführen.
+7.. Folgen Sie den Anweisungen zur Konfiguration der Datenbank und des E-Mail-Servers.
 
 ## ⚙️ Konfiguration
 

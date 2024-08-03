@@ -129,49 +129,57 @@ $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES
 $stmt->execute([$username, $email, $password]);
 
 // Erstellen der config.php
-$config_content = "<?php
-define('DB_HOST', '{$_SESSION['db_config']['host']}');
-define('DB_NAME', '{$_SESSION['db_config']['name']}');
-define('DB_USER', '{$_SESSION['db_config']['user']}');
-define('DB_PASS', '{$_SESSION['db_config']['pass']}');
+$config_content = '<?php
+define(\'DB_HOST\', \'' . $_SESSION['db_config']['host'] . '\');
+define(\'DB_NAME\', \'' . $_SESSION['db_config']['name'] . '\');
+define(\'DB_USER\', \'' . $_SESSION['db_config']['user'] . '\');
+define(\'DB_PASS\', \'' . $_SESSION['db_config']['pass'] . '\');
 
 try {
-    $db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db = new PDO(
+        \'mysql:host=\' . DB_HOST . \';dbname=\' . DB_NAME . \';charset=utf8mb4\',
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]
+    );
 } catch (PDOException $e) {
-    die("Verbindung zur Datenbank fehlgeschlagen: " . $e->getMessage());
+    die(\'Verbindung zur Datenbank fehlgeschlagen: \' . $e->getMessage());
 }
 
-define('SMTP_HOST', '{$_POST['smtp_host']}');
-define('SMTP_PORT', {$_POST['smtp_port']});
-define('SMTP_USER', '{$_POST['smtp_user']}');
-define('SMTP_PASS', '{$_POST['smtp_pass']}');
-define('SMTP_FROM', '{$_POST['smtp_user']}');
-define('SMTP_FROM_NAME', 'Quiz App');
-define('SMTP_SECURE', 'tls');
+define(\'SMTP_HOST\', \'' . $_POST['smtp_host'] . '\');
+define(\'SMTP_PORT\', ' . $_POST['smtp_port'] . ');
+define(\'SMTP_USER\', \'' . $_POST['smtp_user'] . '\');
+define(\'SMTP_PASS\', \'' . $_POST['smtp_pass'] . '\');
+define(\'SMTP_FROM\', \'' . $_POST['smtp_user'] . '\');
+define(\'SMTP_FROM_NAME\', \'Quiz App\');
+define(\'SMTP_SECURE\', \'tls\');
 
-define('ROLE_USER', 'user');
-define('ROLE_EDITOR', 'editor');
-define('ROLE_MANAGER', 'manager');
-define('ROLE_ADMIN', 'admin');
+define(\'ROLE_USER\', \'user\');
+define(\'ROLE_EDITOR\', \'editor\');
+define(\'ROLE_MANAGER\', \'manager\');
+define(\'ROLE_ADMIN\', \'admin\');
 
-function checkUserRole(\$requiredRole) {
-    if (!isset(\$_SESSION['user_role'])) {
-        header('Location: login.php');
+function checkUserRole($requiredRole) {
+    if (!isset($_SESSION[\'user_role\'])) {
+        header(\'Location: login.php\');
         exit();
     }
 
-    \$userRole = \$_SESSION['user_role'];
-    \$roles = [ROLE_USER, ROLE_EDITOR, ROLE_MANAGER, ROLE_ADMIN];
-    \$userRoleIndex = array_search(\$userRole, \$roles);
-    \$requiredRoleIndex = array_search(\$requiredRole, \$roles);
+    $userRole = $_SESSION[\'user_role\'];
+    $roles = [ROLE_USER, ROLE_EDITOR, ROLE_MANAGER, ROLE_ADMIN];
+    $userRoleIndex = array_search($userRole, $roles);
+    $requiredRoleIndex = array_search($requiredRole, $roles);
 
-    if (\$userRoleIndex === false || (\$userRoleIndex < \$requiredRoleIndex && \$userRole !== ROLE_ADMIN)) {
-        header('Location: index.php');
+    if ($userRoleIndex === false || ($userRoleIndex < $requiredRoleIndex && $userRole !== ROLE_ADMIN)) {
+        header(\'Location: index.php\');
         exit();
     }
 }
-?>";
+?>';
 
             file_put_contents('config.php', $config_content);
 
