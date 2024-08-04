@@ -9,34 +9,79 @@ checkUserRole(ROLE_USER);
 function getQuestions($db, $category_ids, $limit) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
 
-    $sql = "SELECT q.id, q.question_text, COALESCE(us.correct_count, 0) as correct_count, COALESCE(us.incorrect_count, 0) as incorrect_count
-            FROM questions q
-            JOIN question_categories qc ON q.id = qc.question_id
-            LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
-            WHERE qc.category_id IN ($placeholders)
-            GROUP BY q.id
-            ORDER BY (COALESCE(us.incorrect_count, 0) - COALESCE(us.correct_count, 0)) DESC, RAND()
-            LIMIT ?";
+    // SQL für neue Fragen
+    $sql_new = "SELECT q.id, q.question_text, 
+       0 as correct_count, 
+       0 as incorrect_count,
+       0 as view_count,
+       '1970-01-01' as last_shown
+FROM questions q
+JOIN question_categories qc ON q.id = qc.question_id
+LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+WHERE qc.category_id IN ($placeholders) AND us.id IS NULL
+ORDER BY RAND()
+LIMIT ?";
 
-    $stmt = $db->prepare($sql);
+    // SQL für bereits beantwortete Fragen
+    $sql_old = "SELECT q.id, q.question_text, 
+       COALESCE(us.correct_count, 0) as correct_count, 
+       COALESCE(us.incorrect_count, 0) as incorrect_count,
+       COALESCE(us.view_count, 0) as view_count,
+       COALESCE(us.last_shown, '1970-01-01') as last_shown
+FROM questions q
+JOIN question_categories qc ON q.id = qc.question_id
+JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+WHERE qc.category_id IN ($placeholders)
+AND (
+    (incorrect_count > correct_count AND DATEDIFF(NOW(), last_shown) >= 1) OR
+    (correct_count >= incorrect_count AND DATEDIFF(NOW(), last_shown) >= 7)
+)
+ORDER BY 
+    CASE 
+        WHEN incorrect_count > correct_count THEN 1
+        ELSE 2
+    END,
+    DATEDIFF(NOW(), last_shown) DESC,
+    (incorrect_count - correct_count) DESC,
+    RAND()
+LIMIT ?";
 
-    // Binden Sie die Parameter
+    $stmt_new = $db->prepare($sql_new);
+    $stmt_old = $db->prepare($sql_old);
+
     $user_id = $_SESSION['user_id'];
     $params = array_merge([$user_id], $category_ids, [$limit]);
     
-    // Verwenden Sie bindValue für PDO
-    $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
+    // Binden der Parameter für neue Fragen
+    $stmt_new->bindValue(1, $user_id, PDO::PARAM_INT);
     foreach ($category_ids as $key => $category_id) {
-        $stmt->bindValue($key + 2, $category_id, PDO::PARAM_INT);
+        $stmt_new->bindValue($key + 2, $category_id, PDO::PARAM_INT);
     }
-    $stmt->bindValue(count($params), $limit, PDO::PARAM_INT);
+    $stmt_new->bindValue(count($params), $limit, PDO::PARAM_INT);
 
-    $stmt->execute();
+    $stmt_new->execute();
+    $new_questions = $stmt_new->fetchAll(PDO::FETCH_ASSOC);
+    $remaining_limit = $limit - count($new_questions);
 
-    $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $questions = $new_questions;
+
+    if ($remaining_limit > 0) {
+        // Binden der Parameter für alte Fragen
+        $stmt_old->bindValue(1, $user_id, PDO::PARAM_INT);
+        foreach ($category_ids as $key => $category_id) {
+            $stmt_old->bindValue($key + 2, $category_id, PDO::PARAM_INT);
+        }
+        $stmt_old->bindValue(count($params), $remaining_limit, PDO::PARAM_INT);
+
+        $stmt_old->execute();
+        $old_questions = $stmt_old->fetchAll(PDO::FETCH_ASSOC);
+        
+        $questions = array_merge($new_questions, $old_questions);
+    }
 
     return $questions;
 }
+
 
 // Funktion zum Abrufen von Antworten für eine Frage
 function getAnswers($db, $questionId) {
