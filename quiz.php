@@ -5,11 +5,11 @@ require_once 'config.php';
 // Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
 
-// Funktion zum Abrufen von Fragen
 function getQuestions($db, $category_ids, $limit) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
+    $user_id = $_SESSION['user_id'];
 
-    // SQL für neue Fragen
+    // SQL für neue und unbeantwortete Fragen
     $sql_new = "SELECT q.id, q.question_text, 
        0 as correct_count, 
        0 as incorrect_count,
@@ -18,12 +18,11 @@ function getQuestions($db, $category_ids, $limit) {
 FROM questions q
 JOIN question_categories qc ON q.id = qc.question_id
 LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
-WHERE qc.category_id IN ($placeholders) AND us.id IS NULL
-ORDER BY RAND()
-LIMIT ?";
+WHERE qc.category_id IN ($placeholders) AND (us.id IS NULL OR us.last_shown IS NULL)
+ORDER BY RAND()";
 
-    // SQL für bereits beantwortete Fragen
-    $sql_old = "SELECT q.id, q.question_text, 
+    // SQL für bereits beantwortete Fragen, die wiederholt werden sollten
+    $sql_repeat = "SELECT q.id, q.question_text, 
        COALESCE(us.correct_count, 0) as correct_count, 
        COALESCE(us.incorrect_count, 0) as incorrect_count,
        COALESCE(us.view_count, 0) as view_count,
@@ -43,45 +42,68 @@ ORDER BY
     END,
     DATEDIFF(NOW(), last_shown) DESC,
     (incorrect_count - correct_count) DESC,
-    RAND()
-LIMIT ?";
+    RAND()";
 
-    $stmt_new = $db->prepare($sql_new);
-    $stmt_old = $db->prepare($sql_old);
+    // SQL für alle anderen Fragen (falls nicht genug neue oder zu wiederholende Fragen vorhanden sind)
+    $sql_all = "SELECT q.id, q.question_text, 
+       COALESCE(us.correct_count, 0) as correct_count, 
+       COALESCE(us.incorrect_count, 0) as incorrect_count,
+       COALESCE(us.view_count, 0) as view_count,
+       COALESCE(us.last_shown, '1970-01-01') as last_shown
+FROM questions q
+JOIN question_categories qc ON q.id = qc.question_id
+LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+WHERE qc.category_id IN ($placeholders)
+ORDER BY RAND()";
 
-    $user_id = $_SESSION['user_id'];
-    $params = array_merge([$user_id], $category_ids, [$limit]);
-    
-    // Binden der Parameter für neue Fragen
-    $stmt_new->bindValue(1, $user_id, PDO::PARAM_INT);
-    foreach ($category_ids as $key => $category_id) {
-        $stmt_new->bindValue($key + 2, $category_id, PDO::PARAM_INT);
-    }
-    $stmt_new->bindValue(count($params), $limit, PDO::PARAM_INT);
+    $questions = [];
+    $used_question_ids = [];
 
-    $stmt_new->execute();
-    $new_questions = $stmt_new->fetchAll(PDO::FETCH_ASSOC);
-    $remaining_limit = $limit - count($new_questions);
-
-    $questions = $new_questions;
-
-    if ($remaining_limit > 0) {
-        // Binden der Parameter für alte Fragen
-        $stmt_old->bindValue(1, $user_id, PDO::PARAM_INT);
-        foreach ($category_ids as $key => $category_id) {
-            $stmt_old->bindValue($key + 2, $category_id, PDO::PARAM_INT);
+    // Neue und unbeantwortete Fragen
+    $stmt = $db->prepare($sql_new);
+    $params = array_merge([$user_id], $category_ids);
+    $stmt->execute($params);
+    $new_questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($new_questions as $question) {
+        if (count($questions) < $limit && !in_array($question['id'], $used_question_ids)) {
+            $questions[] = $question;
+            $used_question_ids[] = $question['id'];
         }
-        $stmt_old->bindValue(count($params), $remaining_limit, PDO::PARAM_INT);
-
-        $stmt_old->execute();
-        $old_questions = $stmt_old->fetchAll(PDO::FETCH_ASSOC);
-        
-        $questions = array_merge($new_questions, $old_questions);
     }
+
+    if (count($questions) < $limit) {
+        // Zu wiederholende Fragen
+        $stmt = $db->prepare($sql_repeat);
+        $params = array_merge([$user_id], $category_ids);
+        $stmt->execute($params);
+        $repeat_questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($repeat_questions as $question) {
+            if (count($questions) < $limit && !in_array($question['id'], $used_question_ids)) {
+                $questions[] = $question;
+                $used_question_ids[] = $question['id'];
+            }
+        }
+    }
+
+    if (count($questions) < $limit) {
+        // Alle anderen Fragen
+        $stmt = $db->prepare($sql_all);
+        $params = array_merge([$user_id], $category_ids);
+        $stmt->execute($params);
+        $all_questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($all_questions as $question) {
+            if (count($questions) < $limit && !in_array($question['id'], $used_question_ids)) {
+                $questions[] = $question;
+                $used_question_ids[] = $question['id'];
+            }
+        }
+    }
+
+    // Mischen Sie die Fragen, um die Reihenfolge zu randomisieren
+    shuffle($questions);
 
     return $questions;
 }
-
 
 // Funktion zum Abrufen von Antworten für eine Frage
 function getAnswers($db, $questionId) {
@@ -121,11 +143,13 @@ function getCategories($db) {
 
 // Funktion zum Aktualisieren der Benutzerstatistik
 function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
-    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count) 
-                          VALUES (?, ?, ?, ?) 
+    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) 
+                          VALUES (?, ?, ?, ?, 1, NOW()) 
                           ON DUPLICATE KEY UPDATE 
                           correct_count = correct_count + ?, 
-                          incorrect_count = incorrect_count + ?");
+                          incorrect_count = incorrect_count + ?,
+                          view_count = view_count + 1,
+                          last_shown = NOW()");
     $correct_increment = $is_correct ? 1 : 0;
     $incorrect_increment = $is_correct ? 0 : 1;
     $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
@@ -156,33 +180,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
 
 $currentQuestion = null;
 $answers = null;
-
-// if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
-//     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {
-//         $currentQuestion = $_SESSION['quiz_questions'][$_SESSION['current_question']];
-
-//         if (!isset($_SESSION['shuffled_answers'][$currentQuestion['id']])) {
-//             $answers = getAnswers($db, $currentQuestion['id']);
-//             $_SESSION['shuffled_answers'][$currentQuestion['id']] = $answers;
-
-//         else {
-//             $answers = $_SESSION['shuffled_answers'][$currentQuestion['id']];
-//         }
-
-//     }
-// }
-
-// if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
-//     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {
-//         $currentQuestion = $_SESSION['quiz_questions'][$_SESSION['current_question']];
-//         if (!isset($_SESSION['shuffled_answers'][$currentQuestion['id']])) {
-//             $answers = getAnswers($db, $currentQuestion['id']);
-//             $_SESSION['shuffled_answers'][$currentQuestion['id']] = $answers;
-//         } else {
-//             $answers = $_SESSION['shuffled_answers'][$currentQuestion['id']];
-//         }
-//     }
-// }
 
 if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) {
     if ($_SESSION['current_question'] < count($_SESSION['quiz_questions'])) {

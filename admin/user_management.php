@@ -7,7 +7,7 @@ checkUserRole(ROLE_ADMIN);
 
 function getAllUsers($db) {
     try {
-        $stmt = $db->query("SELECT * FROM users ORDER BY username");
+        $stmt = $db->query("SELECT id, username, email, role, last_login, logged_out, logged_in FROM users ORDER BY username");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Fehler beim Abrufen der Benutzer: " . $e->getMessage());
@@ -29,6 +29,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     }
 }
 
+function formatDateTime($dateTime) {
+    if ($dateTime) {
+        return date("d.m.Y H:i:s", strtotime($dateTime));
+    }
+    return "N/A";
+}
+
+function calculateSessionDuration($lastLogin, $loggedOut) {
+    if ($lastLogin && $loggedOut) {
+        $start = new DateTime($lastLogin);
+        $end = new DateTime($loggedOut);
+        $interval = $start->diff($end);
+        if ($interval->h > 0) {
+            return $interval->h . " Stunden, " . $interval->i . " Minuten";
+        } else {
+            return $interval->i . " Minuten";
+        }
+    }
+    return "N/A";
+}
 ?>
 
 <!DOCTYPE html>
@@ -39,6 +59,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     <title>Benutzerverwaltung - Quiz App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online {
+            background-color: green;
+        }
+        .status-offline {
+            background-color: red;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
@@ -61,6 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                     <th>Benutzername</th>
                     <th>E-Mail</th>
                     <th>Rolle</th>
+                    <th>Status</th>
+                    <th>Letzter Login</th>
+                    <th>Logout</th>
+                    <th>Session Dauer</th>
                     <th>Aktion</th>
                 </tr>
             </thead>
@@ -71,6 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                         <td><?php echo htmlspecialchars($user['username']); ?></td>
                         <td><?php echo htmlspecialchars($user['email']); ?></td>
                         <td><?php echo htmlspecialchars($user['role']); ?></td>
+                        <td>
+                            <span class="status-indicator <?php echo $user['logged_in'] ? 'status-online' : 'status-offline'; ?>"></span>
+                        </td>
+                        <td><?php echo formatDateTime($user['last_login']); ?></td>
+                        <td><?php echo formatDateTime($user['logged_out']); ?></td>
+                        <td><?php echo calculateSessionDuration($user['last_login'], $user['logged_out']); ?></td>
                         <td>
                             <form action="" method="post" onsubmit="return confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?');">
                                 <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">

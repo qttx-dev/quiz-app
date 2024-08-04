@@ -16,6 +16,9 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 - 📈 **Prozentuale Anzeige**: Benutzer sehen auf einen Blick, wie viel Prozent sie in der Fragerunde erreicht haben.
 - 🐞 **Debugging-Tool**: Administratoren können die Datenbank debuggen. Die Inhalte werden mit DataTables angezeigt.
 - 🎨 **UI-Verbesserungen**: Einige Ansichten wurden grafisch überarbeitet, einschließlich der Loginseite.
+- 🕒 **Erweiterte Benutzerverwaltung**: Administratoren können nun den aktuellen Online-Status von Benutzern sowie deren letzte Aktivitätszeiten einsehen.
+- 🧹 **Automatische Bereinigung**: Ein neues System zur regelmäßigen Bereinigung von nicht mehr benötigten Daten wurde implementiert.
+- 🔄 **Datenbank-Aktualisierung**: Die Datenstruktur wurde erweitert, um neue Funktionen zu unterstützen.
 
 ## 🚀 Funktionen
 
@@ -46,7 +49,8 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 4. Setzen Sie die Rechte für die `setup.php` mit `chmod 666 setup.php` und das Verzeichnis mit `chmod 755`.
 5. Das Verzeichnis muss beschreibbar sein und Sie müssen Besitzer des Verzeichnisses sein.
 6. Navigieren Sie im Browser zur `setup.php`, um die Ersteinrichtung durchzuführen.
-7.. Folgen Sie den Anweisungen zur Konfiguration der Datenbank und des E-Mail-Servers.
+7. Folgen Sie den Anweisungen zur Konfiguration der Datenbank und des E-Mail-Servers.
+8. **Wichtig**: Richten Sie einen Cron-Job ein, der regelmäßig das Skript zur Datenbereinigung ausführt. Fügen Sie folgende Zeile zu Ihrer Crontab hinzu `*/5 * * * * php /pfad/zu/ihrer/app/lib/scripts/cleanup_sessions.php`
 
 ## ⚙️ Konfiguration
 

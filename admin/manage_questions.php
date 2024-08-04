@@ -41,6 +41,10 @@ function deleteQuestion($db, $questionId) {
         $stmt = $db->prepare("DELETE FROM answers WHERE question_id = ?");
         $stmt->execute([$questionId]);
 
+        // Lösche zugehörige Einträge in user_statistics (falls vorhanden)
+        $stmt = $db->prepare("DELETE FROM user_statistics WHERE question_id = ?");
+        $stmt->execute([$questionId]);
+
         // Lösche die Frage selbst
         $stmt = $db->prepare("DELETE FROM questions WHERE id = ?");
         $stmt->execute([$questionId]);
@@ -50,9 +54,10 @@ function deleteQuestion($db, $questionId) {
     } catch (PDOException $e) {
         $db->rollBack();
         error_log("Fehler beim Löschen der Frage: " . $e->getMessage());
-        return false;
+        throw new Exception("Fehler beim Löschen der Frage: " . $e->getMessage());
     }
 }
+
 
 $message = '';
 $questions = getAllQuestions($db);

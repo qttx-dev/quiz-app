@@ -1,0 +1,3 @@
+<Files "cleanup_sessions.php">
+    Require all denied
+</Files>

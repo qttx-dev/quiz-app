@@ -68,6 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 password VARCHAR(255) NOT NULL,
                 role ENUM('user', 'editor', 'manager', 'admin') NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME DEFAULT NULL,
+                loggend_out DATETIME DEFAULT NULL,
+                logged_in BOOLEAN DEFAULT FALSE,
                 reset_token VARCHAR(64) DEFAULT NULL,
                 reset_token_expiry DATETIME DEFAULT NULL
             );
@@ -110,6 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 question_id INT,
                 correct_count INT DEFAULT 0,
                 incorrect_count INT DEFAULT 0,
+                view_count INT DEFAULT 0,
+                last_shown DATETIME,
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (question_id) REFERENCES questions(id)
             );

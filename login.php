@@ -35,6 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['user_role'] = $user['role'];
+
+            // Aktualisieren des last_login Zeitpunkts und logged_in Status
+            $update_stmt = $db->prepare("UPDATE users SET last_login = NOW(), logged_in = TRUE WHERE id = :user_id");
+            $update_stmt->bindParam(':user_id', $user['id']);
+            $update_stmt->execute();
+
             header('Location: index.php');
             exit();
         } else {

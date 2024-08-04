@@ -139,6 +139,7 @@ function getQuestionDetails($db, $questionId) {
                     $details = getQuestionDetails($db, $question['id']);
                     foreach ($details as $answer):
                         $class = $answer['is_correct'] ? 'correct-answer' : 'incorrect-answer';
+                        $icon = $answer['is_correct'] ? '<i class="fas fa-check-circle result-icon text-success"></i>' : '<i class="fas fa-times-circle result-icon text-danger"></i>';
                         $userAnswer = $_SESSION['user_answers'][$index];
                         if ($userAnswer['answer_id'] == $answer['answer_id']) {
                             $class .= ' user-answer';
