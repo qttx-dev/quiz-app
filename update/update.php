@@ -3,28 +3,7 @@
 require_once '../config.php';
 
 // Überprüfen, ob der Benutzer angemeldet ist und die Rolle Admin hat
-checkUserRole(ROLE_ADMIN);
-
-// Funktion zum Ausgeben von Fortschrittsmeldungen
-function updateProgress($message) {
-    echo json_encode(['message' => $message]);
-    ob_flush();
-    flush();
-}
-
-// Funktion zum Rollback
-function rollback($backupFilename, $originalFilename) {
-    if (file_exists($backupFilename)) {
-        if (copy($backupFilename, $originalFilename)) {
-            unlink($backupFilename);
-            return "Rollback erfolgreich durchgeführt. Die ursprüngliche Version wurde wiederhergestellt.";
-        } else {
-            return "Fehler beim Rollback. Bitte stellen Sie die Datei manuell wieder her.";
-        }
-    } else {
-        return "Keine Backup-Datei gefunden. Rollback nicht möglich.";
-    }
-}
+// checkUserRole(ROLE_ADMIN);
 
 // Funktion zum Überprüfen des Datenbankschemas
 function checkDatabaseSchema($conn) {
@@ -42,10 +21,11 @@ function checkDatabaseSchema($conn) {
 // Funktion zum Überprüfen der Funktionen in quiz.php
 function checkQuizFunctions($filename) {
     $content = file_get_contents($filename);
-    $getQuestionsUpdated = strpos($content, 'COALESCE(us.view_count, 0) as view_count') !== false 
-                           && strpos($content, 'COALESCE(us.last_shown, \'1970-01-01\') as last_shown') !== false;
-    $updateUserStatisticsUpdated = strpos($content, 'view_count = view_count + 1') !== false 
-                                   && strpos($content, 'last_shown = NOW()') !== false;
+    $getQuestionsUpdated = strpos($content, "COALESCE(us.view_count, 0) as view_count") !== false 
+                           && strpos($content, "COALESCE(us.last_shown, '1970-01-01') as last_shown") !== false;
+    $updateUserStatisticsUpdated = strpos($content, "view_count = view_count + 1") !== false 
+                                   && strpos($content, "last_shown = NOW()") !== false
+                                   && strpos($content, "\$correct_increment = \$is_correct ? 1 : 0;") !== false;
 
     return ['getQuestions' => $getQuestionsUpdated, 'updateUserStatistics' => $updateUserStatisticsUpdated];
 }
@@ -93,7 +73,7 @@ if (!isset($_POST['action'])) {
                     success: function(response) {
                         $("#progressMessages").append("<p>" + response.message + "</p>");
                         if (response.status === "error") {
-                            alert("Ein Fehler ist aufgetreten: " + response.message);
+                            handleError(response.message);
                         } else if (response.status === "complete") {
                             updateProgressBar(totalSteps);
                             $("#progressMessages").append("<p>Update abgeschlossen!</p>");
@@ -232,7 +212,7 @@ if (isset($_POST['action'])) {
                     LIMIT ?";
                     
                         $stmt = $db->prepare($sql);
-                        $params = array_merge([$_SESSION[\'user_id\']], $category_ids, [$limit]);
+                        $params = array_merge([$_SESSION["user_id"]], $category_ids, [$limit]);
                         $stmt->execute($params);
                         return $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
@@ -256,7 +236,7 @@ if (isset($_POST['action'])) {
                     $newFunction = '
                     function updateUserStatistics($db, $user_id, $question_id, $is_correct = null) {
                         $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) 
-                                              VALUES (?, ?, 0, 0, 1, NOW()) 
+                                              VALUES (?, ?, ?, ?, 1, NOW()) 
                                               ON DUPLICATE KEY UPDATE 
                                               correct_count = correct_count + ?,
                                               incorrect_count = incorrect_count + ?,
@@ -272,7 +252,7 @@ if (isset($_POST['action'])) {
                             $incorrect_increment = $is_correct ? 0 : 1;
                         }
                         
-                        $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment]);
+                        $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
                     }
                     ';
                     
