@@ -2,46 +2,79 @@
 session_start();
 require_once 'config.php';
 
+// Zufallsgenerator - für Versionen >PHP 7.1
+srand(time());
+
+
 // Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
+error_log("Session state 1: " . print_r($_SESSION, true));
+// Initialisieren von VAR
+$userId = $_SESSION['user_id'];
+$error = '';
+error_log("Session state 2: " . print_r($_SESSION, true));
 
+// Funktion zum Abrufen der Kategorien, auf die der Benutzer Zugriff hat
+function getCategories($db, $userId) {
+    try {
+        $stmt = $db->prepare("
+            SELECT DISTINCT c.*
+            FROM categories c
+            INNER JOIN user_categories uc ON c.id = uc.category_id
+            WHERE uc.user_id = ?
+            ORDER BY c.name
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Fehler beim Abrufen der Kategorien: " . $e->getMessage());
+        return [];
+    }
+}
+
+// Funktion zum Abrufen von Fragen
 function getQuestions($db, $category_ids, $limit) {
+    error_log("Selected questions: " . print_r($questions, true));
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
     $user_id = $_SESSION['user_id'];
 
+    // Bestimme Wiederholungsintervalle basierend auf Benutzereinstellungen
+    $repeat_interval_correct = getRepeatIntervalForUser($db, $user_id, 'correct');
+    $repeat_interval_incorrect = getRepeatIntervalForUser($db, $user_id, 'incorrect');    
+
     // SQL für neue und unbeantwortete Fragen
     $sql_new = "SELECT q.id, q.question_text, 
-       0 as correct_count, 
-       0 as incorrect_count,
-       0 as view_count,
-       '1970-01-01' as last_shown
-FROM questions q
-JOIN question_categories qc ON q.id = qc.question_id
-LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
-WHERE qc.category_id IN ($placeholders) AND (us.id IS NULL OR us.last_shown IS NULL)
-ORDER BY RAND()";
+                0 as correct_count, 
+                0 as incorrect_count,
+                0 as view_count,
+                '1970-01-01' as last_shown
+        FROM questions q
+        JOIN question_categories qc ON q.id = qc.question_id
+        LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+        WHERE qc.category_id IN ($placeholders) AND us.id IS NULL
+        ORDER BY RAND()";
 
     // SQL für bereits beantwortete Fragen, die wiederholt werden sollten
     $sql_repeat = "SELECT q.id, q.question_text, 
-       COALESCE(us.correct_count, 0) as correct_count, 
-       COALESCE(us.incorrect_count, 0) as incorrect_count,
-       COALESCE(us.view_count, 0) as view_count,
-       COALESCE(us.last_shown, '1970-01-01') as last_shown
-FROM questions q
-JOIN question_categories qc ON q.id = qc.question_id
-JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
-WHERE qc.category_id IN ($placeholders)
-AND (
-    (incorrect_count > correct_count AND DATEDIFF(NOW(), last_shown) >= 1) OR
-    (correct_count >= incorrect_count AND DATEDIFF(NOW(), last_shown) >= 7)
-)
-ORDER BY 
-    CASE 
-        WHEN incorrect_count > correct_count THEN 1
-        ELSE 2
-    END,
-    DATEDIFF(NOW(), last_shown) DESC,
+                    us.correct_count, 
+                    us.incorrect_count,
+                    us.view_count,
+                    us.last_shown
+        FROM questions q
+        JOIN question_categories qc ON q.id = qc.question_id
+        JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+        WHERE qc.category_id IN ($placeholders)
+        AND (
+            (incorrect_count > correct_count AND DATEDIFF(NOW(), last_shown) >= 1) OR
+            (correct_count >= incorrect_count AND DATEDIFF(NOW(), last_shown) >= 7)
+            )
+        ORDER BY 
+            CASE 
+                WHEN incorrect_count > correct_count THEN 1
+                ELSE 2
+            END,
     (incorrect_count - correct_count) DESC,
+    DATEDIFF(NOW(), last_shown) DESC,
     RAND()";
 
     // SQL für alle anderen Fragen (falls nicht genug neue oder zu wiederholende Fragen vorhanden sind)
@@ -50,11 +83,11 @@ ORDER BY
        COALESCE(us.incorrect_count, 0) as incorrect_count,
        COALESCE(us.view_count, 0) as view_count,
        COALESCE(us.last_shown, '1970-01-01') as last_shown
-FROM questions q
-JOIN question_categories qc ON q.id = qc.question_id
-LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
-WHERE qc.category_id IN ($placeholders)
-ORDER BY RAND()";
+        FROM questions q
+        JOIN question_categories qc ON q.id = qc.question_id
+        LEFT JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
+        WHERE qc.category_id IN ($placeholders)
+        ORDER BY RAND()";
 
     $questions = [];
     $used_question_ids = [];
@@ -101,8 +134,24 @@ ORDER BY RAND()";
 
     // Mischen Sie die Fragen, um die Reihenfolge zu randomisieren
     shuffle($questions);
+    return array_slice($questions, 0, $limit);
+    // return $questions;
+}
 
-    return $questions;
+// Hilfefunktion zum Abrufen des Wiederholungsintervalls
+function getRepeatIntervalForUser($db, $user_id, $type) {
+    $stmt = $db->prepare("SELECT repeat_interval_$type FROM users WHERE id = :user_id");
+    $stmt->execute([':user_id' => $user_id]);
+    $user_setting = $stmt->fetchColumn();
+    if ($user_setting) {
+        return $user_setting;
+    } else {
+        // Falls keine benutzerspezifischen Einstellungen vorhanden sind, globale Einstellungen verwenden
+        $stmt = $db->prepare("SELECT value FROM settings WHERE name = ?");
+        $stmt->execute(["repeat_interval_$type"]);
+        $setting = $stmt->fetchColumn();
+        return $setting ? intval($setting) : ($type === 'correct' ? 7 : 1); // Standardwerte falls nicht gesetzt
+    }
 }
 
 // Funktion zum Abrufen von Antworten für eine Frage
@@ -111,7 +160,7 @@ function getAnswers($db, $questionId) {
         $stmt = $db->prepare("SELECT id, answer_text, is_correct FROM answers WHERE question_id = ? ORDER BY RAND()");
         $stmt->execute([$questionId]);
         $answers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         // Mischen Sie die Antworten nur, wenn sie noch nicht in der Session gespeichert sind
         if (!isset($_SESSION['shuffled_answers'][$questionId])) {
             shuffle($answers);
@@ -119,44 +168,24 @@ function getAnswers($db, $questionId) {
         } else {
             $answers = $_SESSION['shuffled_answers'][$questionId];
         }
-        
-        // Mischen der Antworten
-        // shuffle($answers);
-        return $answers;
 
+        return $answers;
     } catch (PDOException $e) {
         error_log("Fehler beim Abrufen der Antworten: " . $e->getMessage());
         return [];
     }
 }
 
-// Funktion zum Abrufen aller Kategorien
-function getCategories($db) {
-    try {
-        $stmt = $db->query("SELECT * FROM categories ORDER BY name");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log("Fehler beim Abrufen der Kategorien: " . $e->getMessage());
-        return [];
-    }
-}
-
 // Funktion zum Aktualisieren der Benutzerstatistik
 function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
-    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) 
-                          VALUES (?, ?, ?, ?, 1, NOW()) 
-                          ON DUPLICATE KEY UPDATE 
-                          correct_count = correct_count + ?, 
-                          incorrect_count = incorrect_count + ?,
-                          view_count = view_count + 1,
-                          last_shown = NOW()");
+    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) VALUES (?, ?, ?, ?, 1, NOW()) ON DUPLICATE KEY UPDATE correct_count = correct_count + ?, incorrect_count = incorrect_count + ?, view_count = view_count + 1, last_shown = NOW()");
     $correct_increment = $is_correct ? 1 : 0;
     $incorrect_increment = $is_correct ? 0 : 1;
     $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
 }
 
-$categories = getCategories($db);
-$error = '';
+$categories = getCategories($db, $userId);
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
     $selectedCategories = isset($_POST['categories']) ? $_POST['categories'] : [];
@@ -165,15 +194,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
     if (empty($selectedCategories)) {
         $error = "Bitte wählen Sie mindestens eine Kategorie aus.";
     } else {
-        $questions = getQuestions($db, $selectedCategories, $questionCount);
-        if (empty($questions)) {
-            $error = "Keine Fragen für die ausgewählten Kategorien gefunden.";
+        $userCategories = array_column($categories, 'id');
+        $invalidCategories = array_diff($selectedCategories, $userCategories);
+
+        if (!empty($invalidCategories)) {
+            $error = "Sie haben keine Berechtigung für einige der ausgewählten Kategorien.";
         } else {
-            $_SESSION['quiz_questions'] = $questions;
-            $_SESSION['current_question'] = 0;
-            $_SESSION['correct_answers'] = 0;
-            $_SESSION['user_answers'] = [];
-            $_SESSION['shuffled_answers'] = [];
+            $questions = getQuestions($db, $selectedCategories, $questionCount);
+            if (empty($questions)) {
+                $error = "Keine Fragen für die ausgewählten Kategorien gefunden.";
+            } else {
+                $_SESSION['quiz_questions'] = $questions;
+                $_SESSION['current_question'] = 0;
+                $_SESSION['correct_answers'] = 0;
+                $_SESSION['user_answers'] = [];
+                $_SESSION['shuffled_answers'] = [];
+                $_SESSION['quiz_started'] = true;
+            }
         }
     }
 }
@@ -187,7 +224,6 @@ if (isset($_SESSION['quiz_questions']) && isset($_SESSION['current_question'])) 
         $answers = getAnswers($db, $currentQuestion['id']);
     }
 }
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_answer'])) {
     $selectedAnswerId = $_POST['answer'];
@@ -230,12 +266,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next_question'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
-    unset($_SESSION['quiz_questions']);
-    unset($_SESSION['current_question']);
-    unset($_SESSION['correct_answers']);
-    unset($_SESSION['user_answers']);
-    unset($_SESSION['show_result']);
-    unset($_SESSION['confetti']);
+    // unset($_SESSION['quiz_questions']);
+    // unset($_SESSION['current_question']);
+    // unset($_SESSION['correct_answers']);
+    // unset($_SESSION['user_answers']);
+    // unset($_SESSION['show_result']);
+    // unset($_SESSION['confetti']);
+    // Alle quizbezogenen Sessionvariablen zurücksetzen
+    $quizVariables = ['quiz_questions', 'current_question', 'correct_answers', 'user_answers', 'show_result', 'quiz_started', 'shuffled_answers', 'confetti'];
+    foreach ($quizVariables as $var) {
+        if (isset($_SESSION[$var])) {
+            unset($_SESSION[$var]);
+        }
+    }
     header("Location: quiz.php");
     exit();
 }
@@ -308,6 +351,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
             font-weight: bold;
         }
 
+
+        .category-selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .category-item {
+            flex: 0 0 calc(33.333% - 10px);
+            max-width: calc(33.333% - 10px);
+        }
+
+        .category-checkbox {
+            display: none;
+        }
+
+        .category-label {
+            display: block;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-checkbox:checked + .category-label {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .no-categories {
+            width: 100%;
+            padding: 15px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            color: #721c24;
+        }
+
+
         @media (max-width: 576px) {
             .quiz-container {
                 padding: 1rem;
@@ -316,7 +402,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
                 font-size: 1rem;
                 padding: 0.8rem;
             }
+            .category-item {
+               flex: 0 0 calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
         }
+
+        @media (max-width: 768px) {
+           .category-item {
+                flex: 0 0 calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+        }        
+
+
     </style>
 </head>
 <body>
@@ -324,7 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
         <div class="quiz-container">
             <?php if ($error): ?>
                 <div class="alert alert-danger" role="alert">
-                    <i class="fas fa-exclamation-triangle"></i> <?php echo $error; ?>
+                    <i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php elseif (!isset($_SESSION['quiz_questions'])): ?>
                 <h2 class="text-center mb-4"><i class="fas fa-question-circle"></i> Quiz starten</h2>
@@ -336,16 +435,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
                     <div class="form-group">
                         <label><i class="fas fa-tags"></i> Kategorien auswählen:</label>
                         <div class="row">
-                            <?php foreach ($categories as $category): ?>
-                                <div class="col-md-6">
-                                    <div class="custom-control custom-checkbox mb-2">
-                                        <input type="checkbox" class="custom-control-input" name="categories[]" value="<?php echo $category['id']; ?>" id="category<?php echo $category['id']; ?>">
-                                        <label class="custom-control-label" for="category<?php echo $category['id']; ?>">
-                                            <?php echo htmlspecialchars($category['name']); ?>
-                                        </label>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
+                        <?php if (!empty($categories) && is_array($categories)): ?>
+                            <div class="form-check category-selection">
+                                <?php foreach ($categories as $category): ?>
+                                    <input class="form-check-input category-checkbox" type="checkbox" name="categories[]" value="<?php echo $category['id']; ?>" id="category_<?php echo $category['id']; ?>">
+                                    <label class="form-check-label category-label" for="category_<?php echo $category['id']; ?>">
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                    <?php else: ?>
+                        <p class="no-categories">Sie haben derzeit keine Kategorien zugewiesen bekommen. Bitte kontaktieren Sie einen Administrator.</p>
+                    <?php endif; ?>
                         </div>
                     </div>
                     <button type="submit" name="start_quiz" class="btn btn-primary btn-lg btn-block">

@@ -68,6 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 password VARCHAR(255) NOT NULL,
                 role ENUM('user', 'editor', 'manager', 'admin') NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                repeat_interval_correct INT DEFAULT NULL,
+                repeat_interval_incorrect INT DEFAULT NULL,
                 last_login DATETIME DEFAULT NULL,
                 loggend_out DATETIME DEFAULT NULL,
                 logged_in BOOLEAN DEFAULT FALSE,
@@ -120,6 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             INSERT INTO settings (name, value) VALUES ('allow_self_registration', '1');
+            INSERT INTO settings (name, value) VALUES ('repeat_interval_correct', '7');
+            INSERT INTO settings (name, value) VALUES ('repeat_interval_incorrect', '1');
             ";
 
             $db->exec($sql);

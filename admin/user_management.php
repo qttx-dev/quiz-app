@@ -116,7 +116,9 @@ function calculateSessionDuration($lastLogin, $loggedOut) {
                         <td><?php echo formatDateTime($user['logged_out']); ?></td>
                         <td><?php echo calculateSessionDuration($user['last_login'], $user['logged_out']); ?></td>
                         <td>
-                            <form action="" method="post" onsubmit="return confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?');">
+                            <a href="edit_user.php?id=<?php echo $user['id']; ?>" class="btn btn-primary btn-sm">
+                                <i class="fas fa-edit"></i> Bearbeiten</a>
+                            <form action="" method="post" onsubmit="return confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?');" style="display: inline;">
                                 <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                 <button type="submit" name="delete" class="btn btn-danger btn-sm">
                                     <i class="fas fa-trash"></i> Löschen

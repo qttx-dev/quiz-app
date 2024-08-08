@@ -8,17 +8,28 @@ $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowSelfRegistration = isset($_POST['allow_self_registration']) ? 1 : 0;
+    $repeatIntervalCorrect = $_POST['repeat_interval_correct'];
+    $repeatIntervalIncorrect = $_POST['repeat_interval_incorrect'];
 
     $stmt = $db->prepare("UPDATE settings SET value = ? WHERE name = 'allow_self_registration'");
-    if ($stmt->execute([$allowSelfRegistration])) {
-        $message = "Einstellungen erfolgreich aktualisiert.";
-    } else {
-        $message = "Fehler beim Aktualisieren der Einstellungen.";
-    }
+    $stmt->execute([$allowSelfRegistration]);
+
+    $stmt = $db->prepare("UPDATE settings SET value = ? WHERE name = 'repeat_interval_correct'");
+    $stmt->execute([$repeatIntervalCorrect]);
+
+    $stmt = $db->prepare("UPDATE settings SET value = ? WHERE name = 'repeat_interval_incorrect'");
+    $stmt->execute([$repeatIntervalIncorrect]);
+
+    $message = "Einstellungen erfolgreich aktualisiert.";
 }
 
-$stmt = $db->query("SELECT value FROM settings WHERE name = 'allow_self_registration'");
-$currentSetting = $stmt->fetchColumn();
+$stmt = $db->query("SELECT name, value FROM settings WHERE name IN ('allow_self_registration', 'repeat_interval_correct', 'repeat_interval_incorrect')");
+$settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Sicherstellen, dass die Indizes existieren
+$allowSelfRegistration = isset($settings['allow_self_registration']) ? $settings['allow_self_registration'] : 0;
+$repeatIntervalCorrect = isset($settings['repeat_interval_correct']) ? $settings['repeat_interval_correct'] : '';
+$repeatIntervalIncorrect = isset($settings['repeat_interval_incorrect']) ? $settings['repeat_interval_incorrect'] : '';
 ?>
 
 <!DOCTYPE html>
@@ -62,9 +73,17 @@ $currentSetting = $stmt->fetchColumn();
             <form method="post">
                 <div class="form-group">
                     <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="allow_self_registration" name="allow_self_registration" value="1" <?php echo $currentSetting == '1' ? 'checked' : ''; ?>>
+                        <input type="checkbox" class="custom-control-input" id="allow_self_registration" name="allow_self_registration" value="1" <?php echo $allowSelfRegistration == '1' ? 'checked' : ''; ?>>
                         <label class="custom-control-label" for="allow_self_registration">Selbstregistrierung aktivieren</label>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="repeat_interval_correct">Wiederholungsintervall bei korrekter Antwort (in Tagen)</label>
+                    <input type="number" class="form-control" id="repeat_interval_correct" name="repeat_interval_correct" value="<?php echo htmlspecialchars($repeatIntervalCorrect); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="repeat_interval_incorrect">Wiederholungsintervall bei falscher Antwort (in Tagen)</label>
+                    <input type="number" class="form-control" id="repeat_interval_incorrect" name="repeat_interval_incorrect" value="<?php echo htmlspecialchars($repeatIntervalIncorrect); ?>" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-save"></i> Einstellungen speichern

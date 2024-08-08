@@ -8,7 +8,8 @@ Eine interaktive Webanwendung zur Erstellung, Verwaltung und Durchführung von Q
 Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, zu verwalten und zu beantworten. Mit einem umfassenden Rechtemanagement und einer benutzerfreundlichen Oberfläche ist sie ideal für Bildungseinrichtungen, Unternehmen oder zum persönlichen Lernen.
 
 ## 🆕 Neueste Updates
-
+- 🗂️ **Userspezifische Kategoriezuweisung**: Jeder User können nun individuell einzelne Kategorien zugewiesen werden.
+- ⚙️ **Individuelle Lernmethode**: Die Wiedervorlage falsch und richtig beantworteter Fragen kann nun selbst global oder je User eingestellt werden.
 - 🧠 **Adaptives Lernen**: Das Quiz lernt jetzt, welche Fragen der Benutzer häufiger falsch und welche richtig beantwortet hat. Es stellt die Fragen entsprechend häufiger oder weniger häufig.
 - ✅ **Direktes Feedback**: Nach jeder Frage erhalten Benutzer sofort Feedback, ob ihre Antwort richtig war.
 - 📊 **Verbesserte Auswertung**: In der Auswertung nach dem Quiz ist nun nicht nur die richtige Antwort erkennbar, sondern auch die selbst gewählte Antwort.
@@ -24,13 +25,14 @@ Diese PHP-basierte Quiz-App ermöglicht es Benutzern, Quizfragen zu erstellen, z
 
 - 👥 **Benutzerverwaltung**: Unterstützt verschiedene Benutzerrollen (Admin, Manager, Editor, User)
 - 📝 **Fragenverwaltung**: Erstellen, Bearbeiten und Löschen von Quizfragen
-- 🗂️ **Kategorisierung**: Organisieren von Fragen in verschiedene Kategorien
+- 🗂️ **Kategorisierung**: Organisieren von Fragen in verschiedene Kategorien und weisen jedem User diese individuell zu
 - 📊 **Quiz-Durchführung**: Zufällige Auswahl von Fragen aus gewählten Kategorien
 - 📈 **Ergebnisauswertung**: Detaillierte Auswertung der Quiz-Ergebnisse.
 - 📤 **Import/Export**: Möglichkeit zum Import und Export von Fragen im CSV-Format
 - 📧 **E-Mail-Integration**: Unterstützung für Passwort-Zurücksetzung und Benachrichtigungen
 - 🎨 **Responsives Design**: Benutzerfreundliche Oberfläche mit Bootstrap
 - 🧠 **Adaptives Lernen**: Anpassung der Fragehäufigkeit basierend auf Benutzerleistung
+- ⚙️ **Individuelle Lernmethode**: Die Wiedervorlage falsch und richtig beantworteter Fragen kann eingestellt werden.
 - 💾 **Datenbank-Management**: Export und Import von Datenbank-Dumps
 - 🐞 **Debugging-Tool**: Anzeige von Datenbankinhalten mit DataTables
 
