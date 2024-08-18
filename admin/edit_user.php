@@ -64,6 +64,8 @@ if ($tableExists) {
                 <label for="role">Rolle</label>
                 <select class="form-control" id="role" name="role">
                     <option value="user" <?php echo $user['role'] == 'user' ? 'selected' : ''; ?>>Benutzer</option>
+                    <option value="editor" <?php echo $user['role'] == 'editor' ? 'selected' : ''; ?>>Editor</option>
+                    <option value="manager" <?php echo $user['role'] == 'manager' ? 'selected' : ''; ?>>Manager</option>
                     <option value="admin" <?php echo $user['role'] == 'admin' ? 'selected' : ''; ?>>Admin</option>
                 </select>
             </div>

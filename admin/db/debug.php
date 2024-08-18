@@ -50,7 +50,7 @@ try {
             foreach ($rows as $row) {
                 echo "<tr>";
                 foreach ($row as $value) {
-                    echo "<td>" . htmlspecialchars($value) . "</td>";
+                    echo "<td>" . htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8') . "</td>";
                 }
                 echo "</tr>";
             }
