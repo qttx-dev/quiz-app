@@ -101,6 +101,11 @@ $repeatIntervalIncorrect = isset($settings['repeat_interval_incorrect']) ? $sett
                     <i class="fas fa-file-import"></i> Datenbank importieren
                 </a>
             </div>
+            <div class="mt-8">
+                <a href="test_mail.php" class="btn btn-secondary btn-block mt-2">
+                <i class="fas fa-envelope"></i> E-Mail Einstellungen testen
+                </a>
+            </div>
             <hr>
             <a href="../index.php" class="btn btn-secondary btn-block mt-4">
                 <i class="fas fa-arrow-left"></i> Zurück zur Startseite
