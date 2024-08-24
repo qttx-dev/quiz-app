@@ -82,6 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 0.75rem 1.5rem;
             width: 100%;
         }
+
+        .link-pwd {
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <button type="submit" class="btn btn-primary btn-custom"><i class="fas fa-sign-in-alt"></i> Login</button>
             </form>
+            <div class="text-center">
+                <a class="link-pwd" href="forgot_password.php">Passwort vergessen</a>
+            </div>
         </div>
         <div class="text-center mt-4">
             <?php include 'inc/footer_text_inc.php'; ?>
