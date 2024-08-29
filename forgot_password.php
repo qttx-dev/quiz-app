@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'config.php';
-require 'vendor/autoload.php'; // Wenn Sie Composer verwenden
+require 'vendor/autoload.php'; // Include Composer autoload if using Composer
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -12,22 +12,22 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
     $mail = new PHPMailer(true);
 
     try {
-        // Servereinstellungen
+        // Server settings
         $mail->isSMTP();
         $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // Für SSL
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // For SSL
         $mail->Port       = SMTP_PORT;
 
-        // Empfänger
+        // Recipient
         $mail->setFrom(SMTP_FROM, SMTP_FROM_NAME);
         $mail->addAddress($email);
 
-        // Inhalt der E-Mail
+        // Email content
         $mail->isHTML(true);
-        $mail->CharSet = 'UTF-8'; // Setze die Zeichencodierung auf UTF-8
+        $mail->CharSet = 'UTF-8';
         $mail->Subject = "Passwort zurücksetzen - Quiz App";
         $mail->Body    = "
         <!DOCTYPE html>
@@ -51,7 +51,7 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
                     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
                 }
                 .header {
-                    background-color: #007bff; /* Blau */
+                    background-color: #007bff;
                     color: white;
                     text-align: center;
                     padding: 10px;
@@ -59,7 +59,7 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
                 }
                 .button {
                     display: inline-block;
-                    background-color: #007bff; /* Blau */
+                    background-color: #007bff;
                     color: white;
                     padding: 10px 20px;
                     text-decoration: none;
@@ -68,7 +68,7 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
                 .link {
                     margin-top: 10px;
                     display: block;
-                    color: #007bff; /* Blau */
+                    color: #007bff;
                     text-decoration: underline;
                 }
             </style>
@@ -97,7 +97,7 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
         </html>
         ";
 
-        // E-Mail senden
+        // Send email
         $mail->send();
         return true;
     } catch (Exception $e) {
@@ -105,7 +105,7 @@ function sendPasswordResetEmail($email, $token, $baseUrl) {
     }
 }
 
-// Automatische Ermittlung der Domain
+// Automatic domain detection
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
 $domain = $_SERVER['HTTP_HOST'];
 $baseUrl = $protocol . "://" . $domain;
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateStmt = $db->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?");
             $updateStmt->execute([$token, $expiry, $user['id']]);
 
-            // E-Mail senden
+            // Send email
             if (sendPasswordResetEmail($email, $token, $baseUrl) === true) {
                 $message = "Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail-Adresse gesendet.";
             } else {
@@ -147,25 +147,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passwort vergessen - Quiz App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .btn-custom {
+            font-size: 1.2rem;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+        }
+        .link-pwd {
+            font-size: 0.8rem;
+        }
+        .welcome-icon {
+            font-size: 4rem;
+            color: #007bff;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Passwort vergessen</h1>
-        
-        <?php if ($message): ?>
-            <div class="alert alert-info"><?php echo $message; ?></div>
-        <?php endif; ?>
+        <div class="text-center">
+            <i class="fas fa-user-graduate welcome-icon"></i>
+            <h1 class="mb-4">Passwort vergessen</h1>
+        </div>
+        <div class="login-container">
+            <?php if ($message): ?>
+                <div class="alert alert-info"><?php echo $message; ?></div>
+            <?php endif; ?>
 
-        <form method="post" action="<?php echo $baseUrl; ?>/forgot_password.php">
-            <div class="form-group">
-                <label for="email">E-Mail-Adresse:</label>
-                <input type="email" class="form-control" id="email" name="email" required>
+            <form method="post" action="<?php echo $baseUrl; ?>/forgot_password.php">
+                <div class="form-group text-left">
+                    <label for="email">E-Mail-Adresse</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-custom"><i class="fas fa-paper-plane"></i> Passwort zurücksetzen</button>
+            </form>
+            <div class="text-center">
+                <a class="link-pwd" href="<?php echo $baseUrl; ?>/login.php">Zurück zur Anmeldung</a>
             </div>
-            <button type="submit" class="btn btn-primary">Passwort zurücksetzen</button>
-        </form>
-
-        <div class="mt-3">
-            <a href="<?php echo $baseUrl; ?>/login.php">Zurück zur Anmeldung</a>
         </div>
     </div>
 

@@ -49,7 +49,6 @@ $domain = $_SERVER['HTTP_HOST'];
 $baseUrl = $protocol . "://" . $domain;
 ?>
 
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -57,38 +56,63 @@ $baseUrl = $protocol . "://" . $domain;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passwort zurücksetzen - Quiz App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .btn-custom {
+            font-size: 1.2rem;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+        }
+        .link-pwd {
+            font-size: 0.8rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Passwort zurücksetzen</h1>
-        
-        <?php if ($message): ?>
-            <div class="alert alert-info"><?php echo $message; ?></div>
-        <?php endif; ?>
+        <div class="text-center">
+            <h1 class="mb-4">Passwort zurücksetzen</h1>
+        </div>
+        <div class="login-container">
+            <?php if ($message): ?>
+                <div class="alert alert-info"><?php echo $message; ?></div>
+            <?php endif; ?>
 
-        <?php if (!$message || strpos($message, 'Fehler') !== false): ?>
-            <form method="post" action="<?php echo $baseUrl; ?>/password.php">
-                <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
-                <div class="form-group">
-                    <label for="new_password">Neues Passwort:</label>
-                    <input type="password" class="form-control" id="new_password" name="new_password" required>
-                    <div id="password-strength-meter" class="progress mt-2" style="height: 5px;">
-                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            <?php if (!$message || strpos($message, 'Fehler') !== false): ?>
+                <form method="post" action="<?php echo $baseUrl; ?>/password.php">
+                    <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
+                    <div class="form-group">
+                        <label for="new_password">Neues Passwort:</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <div id="password-strength-meter" class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small id="passwordHelpBlock" class="form-text text-muted">
+                            Das Passwort muss mindestens 12 Zeichen lang sein und Großbuchstaben, Kleinbuchstaben, Zahlen und Sonderzeichen enthalten.
+                        </small>
                     </div>
-                    <small id="passwordHelpBlock" class="form-text text-muted">
-                        Das Passwort muss mindestens 12 Zeichen lang sein und Großbuchstaben, Kleinbuchstaben, Zahlen und Sonderzeichen enthalten.
-                    </small>
-                </div>
-                <div class="form-group">
-                    <label for="confirm_password">Passwort bestätigen:</label>
-                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Passwort zurücksetzen</button>
-            </form>
-        <?php endif; ?>
+                    <div class="form-group">
+                        <label for="confirm_password">Passwort bestätigen:</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-custom">Passwort zurücksetzen</button>
+                </form>
+            <?php endif; ?>
 
-        <div class="mt-3">
-            <a href="<?php echo $baseUrl; ?>/login.php">Zurück zur Anmeldung</a>
+            <!-- <div class="mt-3">
+                <a href="<?php echo $baseUrl; ?>/login.php">Zurück zur Anmeldung</a>
+            </div> -->
         </div>
     </div>
 
