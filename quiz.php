@@ -5,7 +5,6 @@ require_once 'config.php';
 // Zufallsgenerator - für Versionen >PHP 7.1
 srand(time());
 
-
 // Überprüfen, ob der Benutzer angemeldet ist
 checkUserRole(ROLE_USER);
 error_log("Session state 1: " . print_r($_SESSION, true));
@@ -33,6 +32,7 @@ function getCategories($db, $userId) {
 }
 
 // Funktion zum Abrufen von Fragen
+// Es wird nun zusätzlich berücksichtigt, wie oft der User die Frage schon gesehen hat
 function getQuestions($db, $category_ids, $limit) {
     error_log("Selected questions: " . print_r($questions, true));
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
@@ -54,7 +54,7 @@ function getQuestions($db, $category_ids, $limit) {
         WHERE qc.category_id IN ($placeholders) AND us.id IS NULL
         ORDER BY RAND()";
 
-    // SQL für bereits beantwortete Fragen, die wiederholt werden sollten
+    // GEÄNDERT: SQL für bereits beantwortete Fragen, die wiederholt werden sollten
     $sql_repeat = "SELECT q.id, q.question_text, 
                     us.correct_count, 
                     us.incorrect_count,
@@ -65,17 +65,18 @@ function getQuestions($db, $category_ids, $limit) {
         JOIN user_statistics us ON q.id = us.question_id AND us.user_id = ?
         WHERE qc.category_id IN ($placeholders)
         AND (
-            (incorrect_count > correct_count AND DATEDIFF(NOW(), last_shown) >= 1) OR
-            (correct_count >= incorrect_count AND DATEDIFF(NOW(), last_shown) >= 7)
-            )
+            (incorrect_count > correct_count AND DATEDIFF(NOW(), last_shown) >= ?) OR
+            (correct_count >= incorrect_count AND DATEDIFF(NOW(), last_shown) >= ?)
+        )
         ORDER BY 
             CASE 
                 WHEN incorrect_count > correct_count THEN 1
                 ELSE 2
             END,
-    (incorrect_count - correct_count) DESC,
-    DATEDIFF(NOW(), last_shown) DESC,
-    RAND()";
+            (incorrect_count - correct_count) DESC,
+            view_count ASC, /* NEU: Priorisiere weniger gesehene Fragen */
+            DATEDIFF(NOW(), last_shown) DESC,
+            RAND()";
 
     // SQL für alle anderen Fragen (falls nicht genug neue oder zu wiederholende Fragen vorhanden sind)
     $sql_all = "SELECT q.id, q.question_text, 
@@ -105,9 +106,9 @@ function getQuestions($db, $category_ids, $limit) {
     }
 
     if (count($questions) < $limit) {
-        // Zu wiederholende Fragen
+        // GEÄNDERT: Zu wiederholende Fragen
         $stmt = $db->prepare($sql_repeat);
-        $params = array_merge([$user_id], $category_ids);
+        $params = array_merge([$user_id], $category_ids, [$repeat_interval_incorrect, $repeat_interval_correct]);
         $stmt->execute($params);
         $repeat_questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($repeat_questions as $question) {
@@ -135,7 +136,6 @@ function getQuestions($db, $category_ids, $limit) {
     // Mischen Sie die Fragen, um die Reihenfolge zu randomisieren
     shuffle($questions);
     return array_slice($questions, 0, $limit);
-    // return $questions;
 }
 
 // Hilfefunktion zum Abrufen des Wiederholungsintervalls
@@ -176,16 +176,26 @@ function getAnswers($db, $questionId) {
     }
 }
 
-// Funktion zum Aktualisieren der Benutzerstatistik
+// Es wird nun gezählt wie oft der User die Frage gesehen hat und entsprechend in der Datenbank gespeichert. Diese Info wird beim Bezug der Fragen berücksichtigt.
 function updateUserStatistics($db, $user_id, $question_id, $is_correct) {
-    $stmt = $db->prepare("INSERT INTO user_statistics (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) VALUES (?, ?, ?, ?, 1, NOW()) ON DUPLICATE KEY UPDATE correct_count = correct_count + ?, incorrect_count = incorrect_count + ?, view_count = view_count + 1, last_shown = NOW()");
+    // Zähle, wie oft der Benutzer die Frage bereits gesehen hat
+    $count_stmt = $db->prepare("SELECT COUNT(*) FROM user_statistics WHERE user_id = ? AND question_id = ?");
+    $count_stmt->execute([$user_id, $question_id]);
+    $previous_views = $count_stmt->fetchColumn();
+
+    // Berechne den neuen view_count (bisherige Anzahl + 1)
+    $new_view_count = $previous_views + 1;
+
+    // Füge einen neuen Eintrag hinzu mit dem berechneten view_count
+    $insert_stmt = $db->prepare("INSERT INTO user_statistics 
+                                 (user_id, question_id, correct_count, incorrect_count, view_count, last_shown) 
+                                 VALUES (?, ?, ?, ?, ?, NOW())");
     $correct_increment = $is_correct ? 1 : 0;
     $incorrect_increment = $is_correct ? 0 : 1;
-    $stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $correct_increment, $incorrect_increment]);
+    $insert_stmt->execute([$user_id, $question_id, $correct_increment, $incorrect_increment, $new_view_count]);
 }
 
 $categories = getCategories($db, $userId);
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_quiz'])) {
     $selectedCategories = isset($_POST['categories']) ? $_POST['categories'] : [];
@@ -347,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
         }
 
         .question {
-            font-size: 1.5em;
+            font-size: 1.3em;
             font-weight: bold;
         }
 
@@ -392,6 +402,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
             border-radius: 5px;
             color: #721c24;
         }
+
+
+    /* Stil für die ungeordnete Liste */
+    ul {
+        list-style-type: none; /* Entfernt die Standard-Aufzählungszeichen */
+        padding-left: 0; /* Entfernt den linken Abstand */
+        margin-top: 20px; /* Abstand nach oben */
+    }
+
+    /* Stil für die Listenelemente */
+    ul li {
+        position: relative; /* Ermöglicht die Verwendung von Pseudo-Elementen */
+        padding-left: 20px; /* Abstand für das benutzerdefinierte Aufzählungszeichen */
+        margin-bottom: 10px; /* Abstand zwischen den Listenelementen */
+        font-size: 1em; /* Schriftgröße */
+        color: #333; /* Textfarbe */
+    }
+
+    /* Benutzerdefiniertes Aufzählungszeichen */
+    ul li::before {
+        content: '•'; /* Benutzerdefiniertes Aufzählungszeichen */
+        position: absolute; /* Positionierung */
+        left: 0; /* Positionierung auf der linken Seite */
+        color: #007BFF; /* Farbe des Aufzählungszeichens */
+        font-size: 1.2em; /* Größe des Aufzählungszeichens */
+    }
 
 
         @media (max-width: 576px) {
@@ -457,7 +493,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restart_quiz'])) {
                 <div class="question-number text-center">
                     <i class="fas fa-question-circle"></i> Frage <?php echo $_SESSION['current_question'] + 1; ?> von <?php echo count($_SESSION['quiz_questions']); ?>
                 </div>
-                <h3 class="mb-4 question"><?php echo htmlspecialchars($currentQuestion['question_text']); ?></h3>
+                <h3 class="mb-4 question"><?php 
+$questiontext = $currentQuestion['question_text']; 
+
+// Erlaubte HTML-Tags
+$allowed_tags = '<br><b><i><u><ol><ul><li></br></b></i></u></ol></ul></li>';
+
+// Entfernen von nicht erlaubten Tags
+$clean_text = strip_tags($questiontext, $allowed_tags);
+
+// Aufteilen des Textes in Zeilen
+$lines = preg_split('/(<br\s*\/?>|<br>)/i', $clean_text);
+
+// Ausgabe der ersten Zeile in größerer Schrift und fett
+if (count($lines) > 0) {
+    echo '<span style="font-size: 1.3em; font-weight: bold;">' . $lines[0] . '</span><br>';
+}
+
+// Ausgabe der restlichen Zeilen in kleinerer Schrift und normal
+for ($i = 1; $i < count($lines); $i++) {
+    if (!empty(trim($lines[$i]))) { // Überprüfen, ob die Zeile nicht leer ist
+        echo '<span style="font-size: 0.7em; font-weight: normal;">' . $lines[$i] . '</span><br>';
+    }
+}
+?></h3>
                 <?php if (isset($_SESSION['show_result']) && $_SESSION['show_result']): ?>
                     <?php foreach ($answers as $answer): ?>
                         <button class="btn btn-answer btn-block <?php 

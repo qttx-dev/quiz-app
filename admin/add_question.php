@@ -3,10 +3,7 @@ session_start();
 require_once '../config.php';
 
 // Überprüfen, ob der Benutzer angemeldet und berechtigt ist
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: login.php');
-    exit();
-}
+checkUserRole(ROLE_ADMIN);
 
 $message = '';
 
@@ -111,12 +108,35 @@ try {
                     </div>
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="addAnswer()">Antwort hinzufügen</button>
+                <small class="form-text text-muted mt-2">
+                    Hinweis für die Eingabe von Fragen mit <b>mehreren</b> richtigen Antworten:<br>
+                    Für die korrekte Darstellung müssen Sie genau das untenstehende Format übernehmen. Die Anzahl der Listenpunkte &lt;li&gt; ist nicht relevant!
+                    <br><br>
+                    <u>Beispiel</u><br><br>
+                    <code>
+                        Wodurch ist eine Pandemie gekennzeichnet?<code>&lt;br&gt;</code><br>
+                        <code>&lt;br&gt;</code><br>
+                        &lt;ul&gt;<br>
+                        &lt;li&gt;A. Die Krankheit breitet sich über Länder und Kontinente hinweg aus&lt;/li&gt;<br>
+                        &lt;li&gt;B. Die Krankheit tritt nur in einer Region der Erde auf&lt;/li&gt;<br>
+                        &lt;li&gt;C. Es erkranken sehr viele Menschen in Zentralafrika an dieser Infektion&lt;/li&gt;<br>
+                        &lt;li&gt;D. Die Zahl der Erkrankungen in einer bestimmten Region steigt über das normal zu erwartende (endemische) Level an&lt;/li&gt;<br>
+                        &lt;li&gt;E. Pandemien werden meist von neu auftretenden Erregern oder Virustypen verursacht&lt;/li&gt;<br>
+                        &lt;/ul&gt;
+                    </code>
+                    <br>
+                    <br>
+                    Stellen Sie sicher, dass Sie <code>&lt;br&gt;</code> für Zeilenumbrüche verwenden, eine Leerzeile und die Antworten in einer ungeordneten Liste (<code>&lt;ul&gt;</code>) formatieren.
+                </small>
             </div>
-            <button type="submit" class="btn btn-primary">Frage speichern</button>
-        </form>
-        <div class="mt-4">
-            <a href="manage_questions.php" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Zurück zur Fragenübersicht</a>
-        </div>
+            <div class="row mt-4">
+    <div class="col">
+        <button type="submit" class="btn btn-primary btn-block">Frage speichern</button>
+    </div>
+    <div class="col">
+        <a href="manage_questions.php" class="btn btn-secondary btn-block"><i class="fas fa-arrow-left"></i> Zurück zur Fragenübersicht</a>
+    </div>
+</div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -147,8 +167,6 @@ try {
             });
         });
     </script>
-
-    
 
     <footer class="footer mt-5">
         <div class="container text-center">

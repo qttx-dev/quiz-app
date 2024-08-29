@@ -82,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     <title>Fragen verwalten</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css"> <!-- DataTables CSS -->
     <style>
         .table td {
             vertical-align: middle;
@@ -91,21 +92,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">Fragen verwalten</h1>
-        
+
         <?php if ($message): ?>
             <div class="alert alert-info"><?php echo $message; ?></div>
         <?php endif; ?>
 
         <div class="mb-3">
-            <a href="add_question.php" class="btn btn-success"><i class="fas fa-plus"></i> Neue Frage hinzufügen</a>
+            <div class="row">
+                <div class="col">
+                    <a href="add_question.php" class="btn btn-success btn-block"><i class="fas fa-plus"></i> Neue Frage hinzufügen</a>
+                </div>
+                <div class="col">
+                    <button class="btn btn-warning btn-block" data-toggle="modal" data-target="#categoryModal"><i class="fas fa-tags"></i> Fragen Kategorien zuordnen</button>
+                </div>
+                <div class="col">
+                    <a href="manage_categories.php" class="btn btn-info btn-block"><i class="fas fa-cogs"></i> Kategorien verwalten</a>
+                </div>
+                <div class="col">
+                    <a href="../index.php" class="btn btn-secondary btn-block"><i class="fas fa-arrow-left"></i> Zurück zur Startseite</a>
+                </div>
+            </div>
         </div>
 
-        <table class="table table-striped">
+        <table class="table table-striped" id="questionsTable">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
                     <th>ID</th>
                     <th>Frage</th>
-                    <th>Richtige Antwort</th>
                     <th>Kategorien</th>
                     <th>Aktionen</th>
                 </tr>
@@ -113,10 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             <tbody>
                 <?php foreach ($questions as $question): ?>
                     <tr>
+                        <td><input type="checkbox" class="question-checkbox" value="<?php echo $question['id']; ?>"></td>
                         <td><?php echo $question['id']; ?></td>
-                        <td><?php echo htmlspecialchars($question['question_text']); ?></td>
-                        <td><?php echo htmlspecialchars($question['correct_answer']); ?></td>
-                        <td><?php echo htmlspecialchars($question['categories']); ?></td>
+                        <td><?php echo htmlspecialchars($question['question_text'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars($question['categories'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td>
                             <a href="edit_question.php?id=<?php echo $question['id']; ?>" class="btn btn-primary btn-sm btn-action"><i class="fas fa-edit"></i> Bearbeiten</a>
                             <form action="" method="post" class="d-inline" onsubmit="return confirm('Sind Sie sicher, dass Sie diese Frage löschen möchten?');">
@@ -129,11 +143,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             </tbody>
         </table>
 
-        <a href="../index.php" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Zurück zur Startseite</a>
+        <!-- Modal für Kategorien -->
+        <div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-labelledby="categoryModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="categoryModalLabel">Fragen Kategorien zuordnen</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="categoryForm" method="post" action="">
+                            <div class="form-group">
+                                <label for="selectedCategories">Wählen Sie Kategorien:</label>
+                                <?php foreach ($categories as $category): ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="category_ids[]" value="<?php echo $category['id']; ?>" id="category_<?php echo $category['id']; ?>">
+                                        <label class="form-check-label" for="category_<?php echo $category['id']; ?>">
+                                            <?php echo htmlspecialchars($category['name']); ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <input type="hidden" name="question_ids" id="question_ids" value="">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Abbrechen</button>
+                        <button type="button" class="btn btn-primary" id="saveCategories">Speichern</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <?php include '../footer.php'; ?>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        $('#questionsTable').DataTable({
+            language: {
+                "sProcessing":   "Wird bearbeitet...",
+                "sLengthMenu":   "Zeige _MENU_ Einträge",
+                "sZeroRecords":  "Keine Einträge vorhanden.",
+                "sInfo":         "Zeige von _START_ bis _END_ von _TOTAL_ Einträgen",
+                "sInfoEmpty":    "Zeige 0 bis 0 von 0 Einträgen",
+                "sInfoFiltered": "(gefiltert von _MAX_ insgesamt Einträgen)",
+                "sSearch":       "Suche:",
+                "sEmptyTable":   "Keine Daten verfügbar in der Tabelle",
+                "oPaginate": {
+                    "sFirst":    "Erste",
+                    "sLast":     "Letzte",
+                    "sNext":     "Nächste",
+                    "sPrevious": "Vorherige"
+                }
+            }
+        });
+
+        // Checkboxen für die Auswahl der Fragen
+        $('#selectAll').click(function() {
+            $('.question-checkbox').prop('checked', this.checked);
+        });
+
+        // Speichern der ausgewählten Fragen und Kategorien
+        $('#saveCategories').click(function() {
+            var selectedQuestions = [];
+            $('.question-checkbox:checked').each(function() {
+                selectedQuestions.push($(this).val());
+            });
+            $('#question_ids').val(selectedQuestions.join(','));
+
+            if (selectedQuestions.length === 0) {
+                alert('Bitte wählen Sie mindestens eine Frage aus.');
+                return;
+            }
+
+            $('#categoryForm').submit(); // Formular absenden
+        });
+    });
+    </script>
 </body>
 </html>

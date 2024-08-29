@@ -96,6 +96,27 @@ function getQuestionDetails($db, $questionId) {
             padding: 0.5rem;
             border-radius: 5px;
         }
+
+        ul {
+    list-style-type: none; /* Entfernt die Standard-Aufzählungszeichen */
+    padding-left: 0; /* Entfernt den linken Abstand */
+    margin-bottom: 20px; /* Fügt einen Abstand nach unten hinzu */
+}
+
+ul li {
+    position: relative; /* Ermöglicht die Verwendung von Pseudo-Elementen */
+    padding-left: 20px; /* Abstand für das benutzerdefinierte Aufzählungszeichen */
+    margin-bottom: 10px; /* Abstand zwischen den Listenelementen */
+}
+
+ul li::before {
+    position: absolute; /* Positionierung */
+    left: 0; /* Positionierung auf der linken Seite */
+    color: black; /* Farbe des Aufzählungszeichens */
+    font-size: 1em; /* Größe des Aufzählungszeichens, gleich der Textgröße */
+    vertical-align: middle; /* Vertikale Ausrichtung */
+}
+
     </style>
 </head>
 <body>
@@ -134,7 +155,17 @@ function getQuestionDetails($db, $questionId) {
             <?php foreach ($_SESSION['quiz_questions'] as $index => $question): ?>
                 <div class="question-card">
                     <h5>Frage <?php echo $index + 1; ?></h5>
-                    <p><?php echo htmlspecialchars($question['question_text']); ?></p>
+                    <p><?php
+                    $questiontext = $question['question_text'];
+                    // Erlaubte HTML-Tags
+                    $allowed_tags = '<br><b><i><u><ol><ul><li></br></b></i></u></ol></ul></li>';
+
+                    // Entfernen von nicht erlaubten Tags
+                    $clean_text = strip_tags($questiontext, $allowed_tags);
+
+                    echo $clean_text;
+
+                    ?></p>
                     <?php 
                     $details = getQuestionDetails($db, $question['id']);
                     foreach ($details as $answer):
